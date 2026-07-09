@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GhostAPI Dashboard</title>
+  <link rel="stylesheet" href="/dashboard/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <nav class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/assets/ghostapi-logo.svg" alt="GhostAPI logo" />
+        <span>GhostAPI</span>
+      </div>
+      <div class="nav">
+        <a href="/dashboard">Overview</a>
+        <a href="/v1/actions/get-attendance/workflow">Workflow</a>
+        <a href="/v1/runs">Run History</a>
+        <a href="/capture/bookmarklet.js">Recorder</a>
+        <span class="pill">Local prototype</span>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">GhostAPI automation console</p>
+        <h1>APIs for websites that never had one.</h1>
+        <p class="hero-copy">Run browser workflows, inspect every execution step, and convert portal screens into structured JSON your apps, agents, and automations can trust.</p>
+        <div class="hero-actions">
+          <button id="heroRunButton" class="blue">Run attendance now</button>
+          <button id="heroRefreshButton" class="secondary">Refresh run history</button>
+        </div>
+      </div>
+
+      <div class="visual" aria-hidden="true">
+        <img class="hero-logo" src="/assets/ghostapi-logo.svg" alt="" />
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="label">Runs stored</div>
+        <div id="runsMetric" class="value">0</div>
+      </div>
+      <div class="stat purple-card">
+        <div class="label">Workflow steps</div>
+        <div id="stepsMetric" class="value">10</div>
+      </div>
+      <div class="stat yellow-card">
+        <div class="label">Latest status</div>
+        <div id="statusMetric" class="value status-value">Ready</div>
+      </div>
+      <div class="stat green-card">
+        <div class="label">Active portal</div>
+        <div class="value portal-value">College</div>
+      </div>
+    </section>
+
+    <main>
+      <section class="stack">
+        <div class="panel">
+          <div class="row space">
+            <h2>Run action</h2>
+            <span class="pill">get-attendance</span>
+          </div>
+          <p>Use your local mock portal credentials, or leave both fields empty to use GhostAPI’s local demo config.</p>
+          <div class="stack">
+            <label>
+              Username
+              <input id="username" placeholder="Optional local username" autocomplete="username" />
+            </label>
+            <label>
+              Password
+              <input id="password" placeholder="Optional local password" type="password" autocomplete="current-password" />
+            </label>
+            <div class="row">
+              <button id="runButton">Run attendance</button>
+              <button class="secondary" id="refreshButton">Refresh runs</button>
+            </div>
+            <div class="status-strip">
+              <span class="dot"></span>
+              <span id="status" class="muted">Ready.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel recorder-panel">
+          <div class="row space">
+            <h2>Browser bookmark</h2>
+            <span class="pill">create APIs anywhere</span>
+          </div>
+          <p>Drag this bookmark to your browser bookmarks bar, then click it on Google, Instagram, college portals, or any site you want to turn into an API.</p>
+          <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
+          <div class="row">
+            <button class="secondary" id="copyBookmarkletButton">Copy bookmarklet</button>
+            <a class="pill" href="/capture/bookmarklet.js" target="_blank" rel="noreferrer">View script</a>
+          </div>
+          <p class="muted tiny">Some sites use strict browser security rules. If the bookmarklet is blocked, the production path is the GhostAPI Chrome extension.</p>
+          <textarea id="bookmarkletCode" class="bookmarklet-code" readonly></textarea>
+        </div>
+
+        <div class="panel">
+          <div class="row space">
+            <h2>Recent runs</h2>
+            <span id="runCount" class="pill">0 runs</span>
+          </div>
+          <div id="runs" class="run-list"></div>
+          <div class="row space pager">
+            <button class="secondary" id="prevRunsButton">Previous</button>
+            <span id="runPageStatus" class="muted tiny">Page 1</span>
+            <button class="secondary" id="nextRunsButton">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="panel">
+          <div class="row space">
+            <h2>Selected run</h2>
+            <span id="selectedRunStatus" class="pill">none</span>
+          </div>
+          <div id="selectedRun" class="stack">
+            <p class="muted">Select a run, or click “Run attendance”.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="row space">
+            <h2>Workflow editor</h2>
+            <div class="row">
+              <button class="secondary" id="loadWorkflowButton">Reload</button>
+              <button id="saveWorkflowButton">Save workflow</button>
+            </div>
+          </div>
+          <p>Edit the persisted workflow JSON. GhostAPI validates step IDs, output fields, and supported step types before saving.</p>
+          <div class="version-toolbar">
+            <label>
+              Version
+              <select id="workflowVersionSelect"></select>
+            </label>
+            <button class="secondary" id="loadVersionButton">Load version</button>
+            <button class="secondary" id="restoreVersionButton">Restore version</button>
+            <button class="secondary" id="diffVersionButton">Diff current</button>
+          </div>
+          <textarea id="workflowJson" class="workflow-editor" spellcheck="false">Click “Reload”.</textarea>
+          <div class="status-strip workflow-status">
+            <span class="dot"></span>
+            <span id="workflowStatus" class="muted">Workflow editor ready.</span>
+          </div>
+          <pre id="workflowDiff" class="workflow-diff">Workflow diff output will appear here.</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/dashboard/app.js" defer></script>
+</body>
+</html>

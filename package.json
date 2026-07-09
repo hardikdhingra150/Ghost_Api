@@ -1,0 +1,26 @@
+{
+  "name": "ghostapi-week1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GhostAPI prototype: expose APIs over portal UIs using Playwright workflows.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "check": "tsc --noEmit",
+    "test:attendance": "tsx src/scripts/test-attendance.ts",
+    "test:dashboard": "tsx src/scripts/test-dashboard.ts",
+    "test:generic": "tsx src/scripts/test-generic-workflow.ts"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.55.0",
+    "fastify": "^4.28.1",
+    "playwright": "^1.55.0",
+    "tsx": "^4.19.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
