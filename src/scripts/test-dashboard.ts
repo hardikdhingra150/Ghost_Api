@@ -45,6 +45,16 @@ if (!html.includes("Chrome Web Store preparation")) {
   throw new Error("Dashboard HTML did not include Chrome Web Store preparation text");
 }
 
+if (!html.includes("Week 13 deployment target")) {
+  throw new Error("Dashboard HTML did not include Week 13 deployment target panel");
+}
+
+for (const expected of ["Render", "Supabase Postgres", "Upstash Redis", "npm run test:deployment"]) {
+  if (!html.includes(expected)) {
+    throw new Error(`Dashboard HTML did not include deployment text: ${expected}`);
+  }
+}
+
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
@@ -88,7 +98,12 @@ console.log(
         "npm run package:extension",
         "Week 11 cloud foundation",
         "Week 12 extension readiness",
-        "Chrome Web Store preparation"
+        "Chrome Web Store preparation",
+        "Week 13 deployment target",
+        "Render",
+        "Supabase Postgres",
+        "Upstash Redis",
+        "npm run test:deployment"
       ]
     },
     null,

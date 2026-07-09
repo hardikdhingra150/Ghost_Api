@@ -1,0 +1,17 @@
+node_modules/
+data/
+dist/
+build/
+.cache/
+.git/
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+extensions/dist/
+extensions/*.crx
+extensions/*.pem
+extensions/*.zip
+*.log
+.DS_Store

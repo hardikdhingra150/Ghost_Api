@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ghostapi-api
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 4000
+      - key: GHOSTAPI_MODE
+        value: cloud
+      - key: GHOSTAPI_DEPLOYMENT_PROVIDER
+        value: render
+      - key: GHOSTAPI_PUBLIC_API_URL
+        sync: false
+      - key: GHOSTAPI_REQUIRE_API_KEY
+        value: "true"
+      - key: GHOSTAPI_API_KEY
+        generateValue: true

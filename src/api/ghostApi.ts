@@ -104,6 +104,8 @@ export function createGhostApi(): FastifyInstance {
       ok: true,
       service: "ghostapi-week1",
       mode: config.cloud.mode,
+      deploymentProvider: config.deployment.provider,
+      publicApiUrl: config.deployment.publicApiUrl,
       message: "GhostAPI is alive"
     };
   });
@@ -120,21 +122,64 @@ export function createGhostApi(): FastifyInstance {
     return {
       ok: true,
       mode: config.cloud.mode,
-      currentPhase: "Week 11",
+      currentPhase: "Week 13",
       readiness: {
         tenantScopedStorage: true,
         localDefaultWorkspace: true,
+        renderDeploymentConfig: true,
+        extensionStorePackage: true,
         hostedAuth: false,
         encryptedCredentialVault: false,
         backgroundWorkerQueue: false,
-        chromeWebStoreDistribution: false
+        chromeWebStoreDistribution: false,
+        productionDatabaseMigration: false
       },
       nextMilestones: [
+        "Deploy the Fastify API to Render",
         "Hosted auth and organizations",
+        "Move local SQLite storage to Supabase Postgres",
         "Encrypted credential vault",
         "Queue-backed browser workers",
         "Chrome Web Store OAuth onboarding"
       ]
+    };
+  });
+
+  app.get("/v1/deployment/plan", async () => {
+    return {
+      ok: true,
+      selectedProvider: "Render",
+      currentProvider: config.deployment.provider,
+      publicApiUrl: config.deployment.publicApiUrl,
+      currentMode: config.cloud.mode,
+      services: [
+        {
+          name: "Render",
+          role: "Hosts the Node/Fastify API and dashboard over HTTPS",
+          status: config.deployment.provider === "render" ? "selected" : "configured"
+        },
+        {
+          name: "Supabase Postgres",
+          role: "Future production database for users, workflows, runs, and API keys",
+          status: config.deployment.supabaseUrl || config.deployment.databaseUrl ? "configured" : "planned"
+        },
+        {
+          name: "Upstash Redis",
+          role: "Future queue/cache layer for cloud browser workers and rate limits",
+          status: config.deployment.redisUrl ? "configured" : "planned"
+        }
+      ],
+      requiredEnvironment: [
+        "HOST",
+        "PORT",
+        "GHOSTAPI_MODE",
+        "GHOSTAPI_DEPLOYMENT_PROVIDER",
+        "GHOSTAPI_PUBLIC_API_URL",
+        "GHOSTAPI_REQUIRE_API_KEY",
+        "GHOSTAPI_API_KEY"
+      ],
+      futureEnvironment: ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "REDIS_URL"],
+      verificationCommands: ["npm run check", "npm run test:deployment", "npm run test:extension", "npm run package:extension"]
     };
   });
 

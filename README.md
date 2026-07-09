@@ -22,6 +22,7 @@ Website UI
 - Playwright browser automation engine
 - Chrome/Edge extension recorder for creating APIs directly from websites
 - Chrome Web Store readiness docs for the extension
+- Render deployment blueprint for the API/dashboard
 - Bookmarklet fallback for quick experiments
 - Workflow JSON format
 - Generic workflow runner
@@ -46,6 +47,9 @@ Website UI
 - SQLite via Node’s built-in `node:sqlite`
 - Zod
 - HTML, CSS, vanilla browser JavaScript
+- Render for the first production API deploy
+- Supabase Postgres planned for hosted database
+- Upstash Redis planned for cloud worker queues
 
 ## Quick start
 
@@ -163,6 +167,37 @@ Still needed before public Chrome Web Store launch:
 - Chrome Web Store developer account
 - production cloud API endpoint
 
+## Week 13 deployment target
+
+GhostAPI should deploy first on Render.
+
+Why Render first: GhostAPI is a long-running Fastify API with Playwright browser automation. Render can run it as a Docker web service behind HTTPS. Supabase Postgres and Upstash Redis are planned next, but they are not required for the first deploy-ready build.
+
+Deployment files:
+
+```txt
+Dockerfile
+.dockerignore
+render.yaml
+.env.example
+docs/week13-deployment.md
+```
+
+Production check:
+
+```bash
+npm run check
+npm run test:deployment
+npm run test:extension
+npm run package:extension
+```
+
+Deployment plan API:
+
+```bash
+curl http://127.0.0.1:4000/v1/deployment/plan
+```
+
 ## Bookmarklet fallback
 
 The dashboard still includes a bookmarklet fallback for quick experiments. Use it only if you do not want to load the extension.
@@ -182,6 +217,7 @@ npm run test:attendance
 npm run test:generic
 npm run test:extension
 npm run test:cloud
+npm run test:deployment
 ```
 
 ## Main API routes

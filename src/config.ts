@@ -6,11 +6,14 @@ function fromCodes(codes: number[]): string {
 
 const localDemoUsername = fromCodes([104, 97, 114, 100, 105, 107]);
 const localDemoPassword = fromCodes([103, 104, 111, 115, 116, 97, 112, 105]);
+const apiHost = process.env.HOST ?? "127.0.0.1";
+const apiPort = Number(process.env.PORT ?? 4000);
+const publicApiUrl = process.env.GHOSTAPI_PUBLIC_API_URL ?? `http://${apiHost}:${apiPort}`;
 
 export const config = {
   api: {
-    host: process.env.HOST ?? "127.0.0.1",
-    port: Number(process.env.PORT ?? 4000)
+    host: apiHost,
+    port: apiPort
   },
   mockPortal: {
     host: process.env.MOCK_PORTAL_HOST ?? "127.0.0.1",
@@ -27,6 +30,13 @@ export const config = {
     defaultOrgId: process.env.GHOSTAPI_DEFAULT_ORG_ID ?? "local-org",
     defaultUserEmail: process.env.GHOSTAPI_DEFAULT_USER_EMAIL ?? "local@ghostapi.dev",
     defaultOrgName: process.env.GHOSTAPI_DEFAULT_ORG_NAME ?? "Local GhostAPI Workspace"
+  },
+  deployment: {
+    provider: process.env.GHOSTAPI_DEPLOYMENT_PROVIDER ?? "local",
+    publicApiUrl,
+    databaseUrl: process.env.DATABASE_URL,
+    supabaseUrl: process.env.SUPABASE_URL,
+    redisUrl: process.env.REDIS_URL
   },
   storage: {
     dataDir: process.env.GHOSTAPI_DATA_DIR ?? path.join(process.cwd(), "data"),

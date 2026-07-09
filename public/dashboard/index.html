@@ -161,6 +161,42 @@ npm run package:extension</code></pre>
       </div>
     </section>
 
+    <section class="setup-panel deploy-panel">
+      <div class="row space">
+        <div>
+          <p class="eyebrow mini-eyebrow">Week 13 deployment target</p>
+          <h2>Deploy GhostAPI on Render first</h2>
+        </div>
+        <a class="pill" href="/v1/deployment/plan" target="_blank" rel="noreferrer">View deployment plan API</a>
+      </div>
+      <p>Render is the first production home for the GhostAPI API because it can run a long-lived Fastify server with Playwright browser automation. Supabase and Upstash are planned for the next cloud layer.</p>
+      <div class="command-grid">
+        <div class="command-card green-card">
+          <span class="pill">api</span>
+          <h3>Render</h3>
+          <p>Hosts the API, dashboard, static files, health endpoint, and Playwright runtime behind HTTPS.</p>
+        </div>
+        <div class="command-card yellow-card">
+          <span class="pill">database</span>
+          <h3>Supabase Postgres</h3>
+          <p>Future production database for users, organizations, workflows, versions, runs, and API keys.</p>
+        </div>
+        <div class="command-card purple-card">
+          <span class="pill">workers</span>
+          <h3>Upstash Redis</h3>
+          <p>Future queue and cache layer for cloud browser workers, rate limits, and async runs.</p>
+        </div>
+        <div class="command-card">
+          <span class="pill">verify</span>
+          <h3>Deployment checks</h3>
+          <pre><code>npm run check
+npm run test:deployment
+npm run test:extension</code></pre>
+          <button class="secondary copy-command" data-command="npm run check&#10;npm run test:deployment&#10;npm run test:extension">Copy checks</button>
+        </div>
+      </div>
+    </section>
+
     <main>
       <section class="stack">
         <div class="panel">

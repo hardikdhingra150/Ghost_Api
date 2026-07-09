@@ -4,6 +4,9 @@
   "private": true,
   "description": "GhostAPI prototype: expose APIs over portal UIs using Playwright workflows.",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
@@ -13,6 +16,7 @@
     "test:generic": "tsx src/scripts/test-generic-workflow.ts",
     "test:extension": "tsx src/scripts/test-extension.ts",
     "test:cloud": "tsx src/scripts/test-cloud.ts",
+    "test:deployment": "tsx src/scripts/test-deployment.ts",
     "package:extension": "node src/scripts/package-extension.mjs"
   },
   "dependencies": {
