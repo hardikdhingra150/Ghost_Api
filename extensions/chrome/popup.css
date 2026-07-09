@@ -95,6 +95,22 @@ button.secondary {
   line-height: 1.45;
 }
 
+.endpoint-card {
+  display: grid;
+  gap: 8px;
+}
+
+code {
+  display: block;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f6f0ff;
+  padding: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
 ol {
   margin: 8px 0 0;
   padding-left: 20px;

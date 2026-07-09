@@ -19,6 +19,9 @@ downloads/
 # Browser/test artifacts
 playwright-report/
 test-results/
+extensions/*.crx
+extensions/*.pem
+extensions/*.zip
 
 # Logs
 *.log

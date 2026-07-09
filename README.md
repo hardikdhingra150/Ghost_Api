@@ -60,6 +60,8 @@ Open:
 http://127.0.0.1:4000/dashboard
 ```
 
+The dashboard shows these same commands in the `Setup commands` panel so non-technical users do not need to hunt through the README.
+
 ## Create an API from any website with the extension
 
 1. Start GhostAPI:
@@ -107,6 +109,28 @@ http://127.0.0.1:4000/dashboard
    ```
 
 The extension is the recommended production path because it is more reliable than a bookmarklet. Some websites can still show CAPTCHA, login challenges, MFA, or bot protection. GhostAPI should pause for human review in those cases instead of bypassing protections.
+
+## Make the extension usable by more users
+
+For local testers, send them this repo and tell them to load:
+
+```txt
+extensions/chrome
+```
+
+For wider distribution, package the extension:
+
+```bash
+npm run package:extension
+```
+
+This creates:
+
+```txt
+extensions/dist/ghostapi-capture.zip
+```
+
+That ZIP is the file you submit to the Chrome Web Store when the product is ready. Do not commit `.pem`, `.crx`, or `.zip` package artifacts.
 
 ## Bookmarklet fallback
 

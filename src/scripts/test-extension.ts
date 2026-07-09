@@ -42,10 +42,17 @@ if (manifest.background?.service_worker !== "background.js") {
 }
 
 const contentRecorder = fs.readFileSync(path.join(extensionDir, "content-recorder.js"), "utf8");
+const popup = fs.readFileSync(path.join(extensionDir, "popup.html"), "utf8");
 
 for (const expected of ["Save API", "Record clicks/fills", "/v1/workflows/"]) {
   if (!contentRecorder.includes(expected)) {
     throw new Error(`Extension recorder missing expected text: ${expected}`);
+  }
+}
+
+for (const expected of ["Check server connection", "Your APIs will run here"]) {
+  if (!popup.includes(expected)) {
+    throw new Error(`Extension popup missing expected text: ${expected}`);
   }
 }
 

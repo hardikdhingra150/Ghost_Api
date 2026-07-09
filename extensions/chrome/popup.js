@@ -1,8 +1,10 @@
 const els = {
   baseUrl: document.querySelector("#baseUrl"),
+  checkServer: document.querySelector("#checkServer"),
   startRecorder: document.querySelector("#startRecorder"),
   openDashboard: document.querySelector("#openDashboard"),
-  status: document.querySelector("#status")
+  status: document.querySelector("#status"),
+  endpointPreview: document.querySelector("#endpointPreview")
 };
 
 boot();
@@ -10,8 +12,11 @@ boot();
 async function boot() {
   const stored = await chrome.storage.sync.get(["ghostApiBaseUrl"]);
   els.baseUrl.value = stored.ghostApiBaseUrl || "http://127.0.0.1:4000";
+  updateEndpointPreview();
 
   els.baseUrl.addEventListener("change", saveBaseUrl);
+  els.baseUrl.addEventListener("input", updateEndpointPreview);
+  els.checkServer.addEventListener("click", checkServer);
   els.startRecorder.addEventListener("click", startRecorder);
   els.openDashboard.addEventListener("click", openDashboard);
 }
@@ -21,7 +26,26 @@ async function saveBaseUrl() {
     ghostApiBaseUrl: normalizeBaseUrl(els.baseUrl.value)
   });
   els.baseUrl.value = normalizeBaseUrl(els.baseUrl.value);
+  updateEndpointPreview();
   setStatus("GhostAPI server saved.");
+}
+
+async function checkServer() {
+  await saveBaseUrl();
+  setStatus("Checking GhostAPI server…");
+
+  try {
+    const response = await fetch(normalizeBaseUrl(els.baseUrl.value) + "/health");
+    const payload = await response.json();
+
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    setStatus("Connected. GhostAPI is running.");
+  } catch (error) {
+    setStatus("Cannot reach GhostAPI. Start it with: npm start");
+  }
 }
 
 async function startRecorder() {
@@ -54,6 +78,10 @@ async function openDashboard() {
 
 function normalizeBaseUrl(value) {
   return String(value || "http://127.0.0.1:4000").replace(/\/+$/, "");
+}
+
+function updateEndpointPreview() {
+  els.endpointPreview.textContent = normalizeBaseUrl(els.baseUrl.value) + "/v1/workflows/YOUR_API/run";
 }
 
 function setStatus(message) {

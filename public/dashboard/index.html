@@ -57,6 +57,44 @@
       </div>
     </section>
 
+    <section class="setup-panel">
+      <div class="row space">
+        <div>
+          <p class="eyebrow mini-eyebrow">Setup commands</p>
+          <h2>Run GhostAPI and install the extension</h2>
+        </div>
+        <button class="secondary" id="copyAllCommandsButton">Copy all commands</button>
+      </div>
+      <div class="command-grid">
+        <div class="command-card">
+          <span class="pill">1</span>
+          <h3>Install project</h3>
+          <pre><code>npm install
+npx playwright install chromium</code></pre>
+          <button class="secondary copy-command" data-command="npm install&#10;npx playwright install chromium">Copy</button>
+        </div>
+        <div class="command-card">
+          <span class="pill">2</span>
+          <h3>Start GhostAPI</h3>
+          <pre><code>npm start</code></pre>
+          <button class="secondary copy-command" data-command="npm start">Copy</button>
+        </div>
+        <div class="command-card">
+          <span class="pill">3</span>
+          <h3>Load extension</h3>
+          <pre><code>chrome://extensions
+Load unpacked → extensions/chrome</code></pre>
+          <button class="secondary copy-command" data-command="extensions/chrome">Copy path</button>
+        </div>
+        <div class="command-card">
+          <span class="pill">4</span>
+          <h3>Package for users</h3>
+          <pre><code>npm run package:extension</code></pre>
+          <button class="secondary copy-command" data-command="npm run package:extension">Copy</button>
+        </div>
+      </div>
+    </section>
+
     <main>
       <section class="stack">
         <div class="panel">

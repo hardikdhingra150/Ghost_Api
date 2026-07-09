@@ -82,7 +82,8 @@ const els = {
   copyBookmarkletButton: document.querySelector("#copyBookmarkletButton"),
   bookmarkletCode: document.querySelector("#bookmarkletCode"),
   bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide"),
-  copyExtensionPathButton: document.querySelector("#copyExtensionPathButton")
+  copyExtensionPathButton: document.querySelector("#copyExtensionPathButton"),
+  copyAllCommandsButton: document.querySelector("#copyAllCommandsButton")
 };
 
 els.runButton.addEventListener("click", runAttendance);
@@ -99,6 +100,10 @@ els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
 els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
 els.installBookmarkletButton.addEventListener("click", installBookmarklet);
 els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
+els.copyAllCommandsButton.addEventListener("click", copyAllCommands);
+document.querySelectorAll(".copy-command").forEach((button) => {
+  button.addEventListener("click", () => copyCommand(button.dataset.command));
+});
 
 boot();
 
@@ -136,6 +141,24 @@ function showBookmarkInstallGuide() {
 async function copyExtensionPath() {
   await navigator.clipboard.writeText("extensions/chrome");
   setStatus("Extension folder copied. Open chrome://extensions, Load unpacked, then select extensions/chrome.");
+}
+
+async function copyCommand(command) {
+  await navigator.clipboard.writeText(command);
+  setStatus("Copied command.");
+}
+
+async function copyAllCommands() {
+  const commands = [
+    "npm install",
+    "npx playwright install chromium",
+    "npm start",
+    "Open chrome://extensions",
+    "Load unpacked: extensions/chrome",
+    "npm run package:extension"
+  ].join("\\n");
+  await navigator.clipboard.writeText(commands);
+  setStatus("All setup commands copied.");
 }
 
 async function requestJson(url, options) {
