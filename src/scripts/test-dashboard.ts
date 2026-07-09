@@ -33,6 +33,10 @@ if (!html.includes("npm run package:extension")) {
   throw new Error("Dashboard HTML did not include extension packaging command");
 }
 
+if (!html.includes("Week 11 cloud foundation")) {
+  throw new Error("Dashboard HTML did not include Week 11 cloud foundation panel");
+}
+
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
@@ -73,7 +77,8 @@ console.log(
         "Install bookmark",
         "Browser extension",
         "Setup commands",
-        "npm run package:extension"
+        "npm run package:extension",
+        "Week 11 cloud foundation"
       ]
     },
     null,

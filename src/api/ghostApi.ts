@@ -7,6 +7,8 @@ import { executeWorkflowAction } from "../actions/executeWorkflowAction.js";
 import { executeGetAttendanceAction } from "../actions/getAttendanceAction.js";
 import { config, mockPortalCredentials } from "../config.js";
 import { sendPublicFile } from "../http/staticFiles.js";
+import { defaultTenantContext, ensureDefaultAccount, getAccount } from "../storage/accountRepository.js";
+import type { GhostApiTenantContext } from "../storage/accountRepository.js";
 import { createApiKey, listApiKeys, revokeApiKey, verifyStoredApiKey } from "../storage/apiKeyRepository.js";
 import { getRun, listRuns } from "../storage/runRepository.js";
 import {
@@ -41,6 +43,11 @@ const createApiKeySchema = z.object({
 
 export function createGhostApi(): FastifyInstance {
   const app = Fastify({ logger: true });
+  ensureDefaultAccount();
+
+  function tenantContext(): GhostApiTenantContext {
+    return defaultTenantContext;
+  }
 
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("access-control-allow-origin", "*");
@@ -60,7 +67,7 @@ export function createGhostApi(): FastifyInstance {
     const providedKey = request.headers["x-ghostapi-key"];
     const key = Array.isArray(providedKey) ? providedKey[0] : providedKey;
     const envKeyMatches = Boolean(config.security.apiKey && key === config.security.apiKey);
-    const storedKeyMatches = Boolean(key && verifyStoredApiKey(key));
+    const storedKeyMatches = Boolean(key && verifyStoredApiKey(key, tenantContext()));
 
     if (!envKeyMatches && !storedKeyMatches) {
       return reply.code(401).send({
@@ -96,12 +103,43 @@ export function createGhostApi(): FastifyInstance {
     return {
       ok: true,
       service: "ghostapi-week1",
+      mode: config.cloud.mode,
       message: "GhostAPI is alive"
     };
   });
 
+  app.get("/v1/me", async () => {
+    return {
+      ok: true,
+      account: getAccount(tenantContext()),
+      mode: config.cloud.mode
+    };
+  });
+
+  app.get("/v1/cloud/plan", async () => {
+    return {
+      ok: true,
+      mode: config.cloud.mode,
+      currentPhase: "Week 11",
+      readiness: {
+        tenantScopedStorage: true,
+        localDefaultWorkspace: true,
+        hostedAuth: false,
+        encryptedCredentialVault: false,
+        backgroundWorkerQueue: false,
+        chromeWebStoreDistribution: false
+      },
+      nextMilestones: [
+        "Hosted auth and organizations",
+        "Encrypted credential vault",
+        "Queue-backed browser workers",
+        "Chrome Web Store OAuth onboarding"
+      ]
+    };
+  });
+
   app.get("/v1/actions", async () => {
-    const workflows = await listWorkflows();
+    const workflows = await listWorkflows(tenantContext());
 
     return {
       actions: workflows.map((workflow) => ({
@@ -122,7 +160,7 @@ export function createGhostApi(): FastifyInstance {
   app.get("/v1/api-keys", async () => {
     return {
       ok: true,
-      apiKeys: listApiKeys()
+      apiKeys: listApiKeys(tenantContext())
     };
   });
 
@@ -137,7 +175,7 @@ export function createGhostApi(): FastifyInstance {
       });
     }
 
-    const apiKey = createApiKey(parsed.data.name);
+    const apiKey = createApiKey(parsed.data.name, tenantContext());
 
     return {
       ok: true,
@@ -148,7 +186,7 @@ export function createGhostApi(): FastifyInstance {
 
   app.delete("/v1/api-keys/:apiKeyId", async (request, reply) => {
     const params = request.params as { apiKeyId: string };
-    const revokedApiKey = revokeApiKey(params.apiKeyId);
+    const revokedApiKey = revokeApiKey(params.apiKeyId, tenantContext());
 
     if (!revokedApiKey) {
       return reply.code(404).send({
@@ -164,7 +202,7 @@ export function createGhostApi(): FastifyInstance {
   });
 
   app.get("/v1/actions/get-attendance/workflow", async () => {
-    const workflow = await getWorkflow("get-attendance");
+    const workflow = await getWorkflow("get-attendance", tenantContext());
 
     return {
       ok: true,
@@ -186,9 +224,9 @@ export function createGhostApi(): FastifyInstance {
       await saveWorkflow({
         ...workflow,
         version: workflow.version + 1
-      });
+      }, tenantContext());
 
-      const savedWorkflow = await getWorkflow("get-attendance");
+      const savedWorkflow = await getWorkflow("get-attendance", tenantContext());
 
       return {
         ok: true,
@@ -206,7 +244,7 @@ export function createGhostApi(): FastifyInstance {
   app.get("/v1/actions/get-attendance/workflow/versions", async () => {
     return {
       ok: true,
-      versions: await listWorkflowVersions("get-attendance")
+      versions: await listWorkflowVersions("get-attendance", tenantContext())
     };
   });
 
@@ -221,7 +259,7 @@ export function createGhostApi(): FastifyInstance {
       });
     }
 
-    const workflow = await getWorkflowVersion("get-attendance", version);
+    const workflow = await getWorkflowVersion("get-attendance", version, tenantContext());
 
     if (!workflow) {
       return reply.code(404).send({
@@ -247,7 +285,7 @@ export function createGhostApi(): FastifyInstance {
       });
     }
 
-    const workflow = await restoreWorkflowVersion("get-attendance", version);
+    const workflow = await restoreWorkflowVersion("get-attendance", version, tenantContext());
 
     if (!workflow) {
       return reply.code(404).send({
@@ -274,7 +312,7 @@ export function createGhostApi(): FastifyInstance {
       });
     }
 
-    const diff = await diffWorkflowVersions("get-attendance", from, to);
+    const diff = await diffWorkflowVersions("get-attendance", from, to, tenantContext());
 
     if (!diff) {
       return reply.code(404).send({
@@ -294,7 +332,7 @@ export function createGhostApi(): FastifyInstance {
   app.get("/v1/workflows", async () => {
     return {
       ok: true,
-      workflows: (await listWorkflows()).map((workflow) => ({
+      workflows: (await listWorkflows(tenantContext())).map((workflow) => ({
         id: workflow.id,
         portal: workflow.portal,
         name: workflow.name,
@@ -312,7 +350,7 @@ export function createGhostApi(): FastifyInstance {
     try {
       return {
         ok: true,
-        workflow: await getWorkflow(params.workflowId)
+        workflow: await getWorkflow(params.workflowId, tenantContext())
       };
     } catch (error) {
       return reply.code(404).send({
@@ -335,16 +373,16 @@ export function createGhostApi(): FastifyInstance {
         });
       }
 
-      const existingWorkflow = await getWorkflow(params.workflowId).catch(() => null);
+      const existingWorkflow = await getWorkflow(params.workflowId, tenantContext()).catch(() => null);
 
       await saveWorkflow({
         ...workflow,
         version: existingWorkflow ? existingWorkflow.version + 1 : workflow.version
-      });
+      }, tenantContext());
 
       return {
         ok: true,
-        workflow: await getWorkflow(params.workflowId)
+        workflow: await getWorkflow(params.workflowId, tenantContext())
       };
     } catch (error) {
       return reply.code(400).send({
@@ -368,7 +406,7 @@ export function createGhostApi(): FastifyInstance {
     }
 
     try {
-      const actionResult = await executeWorkflowAction(params.workflowId, parsed.data.variables ?? {});
+      const actionResult = await executeWorkflowAction(params.workflowId, parsed.data.variables ?? {}, tenantContext());
 
       return {
         ok: true,
@@ -390,7 +428,7 @@ export function createGhostApi(): FastifyInstance {
   app.get("/v1/runs", async () => {
     return {
       ok: true,
-      ...(await listRuns())
+      ...(await listRuns(25, 0, tenantContext()))
     };
   });
 
@@ -408,13 +446,13 @@ export function createGhostApi(): FastifyInstance {
 
     return {
       ok: true,
-      ...(await listRuns(limit, offset))
+      ...(await listRuns(limit, offset, tenantContext()))
     };
   });
 
   app.get("/v1/runs/:runId", async (request, reply) => {
     const params = request.params as { runId: string };
-    const run = await getRun(params.runId);
+    const run = await getRun(params.runId, tenantContext());
 
     if (!run) {
       return reply.code(404).send({
@@ -467,7 +505,7 @@ export function createGhostApi(): FastifyInstance {
       const actionResult = await executeGetAttendanceAction({
         username: parsed.data.credentials?.username ?? mockPortalCredentials.username,
         password: parsed.data.credentials?.password ?? mockPortalCredentials.password
-      });
+      }, tenantContext());
 
       return {
         ok: true,

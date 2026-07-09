@@ -1,5 +1,6 @@
 import { config } from "../config.js";
 import type { StoredWorkflowRun } from "../workflows/workflowTypes.js";
+import { defaultTenantContext, type GhostApiTenantContext } from "./accountRepository.js";
 import { getDatabase } from "./database.js";
 import { readJsonFile } from "./jsonFile.js";
 
@@ -38,14 +39,20 @@ export type PaginatedRuns = {
   offset: number;
 };
 
-export async function listRuns(limit = 25, offset = 0): Promise<PaginatedRuns> {
+export async function listRuns(
+  limit = 25,
+  offset = 0,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<PaginatedRuns> {
   await migrateLegacyRunsIfNeeded();
   const normalizedLimit = Math.min(Math.max(limit, 1), 100);
   const normalizedOffset = Math.max(offset, 0);
-  const totalRow = getDatabase().prepare("SELECT COUNT(*) as count FROM runs").get() as { count: number };
+  const totalRow = getDatabase()
+    .prepare("SELECT COUNT(*) as count FROM runs WHERE owner_user_id = ?")
+    .get(context.userId) as { count: number };
   const rows = getDatabase()
-    .prepare("SELECT * FROM runs ORDER BY created_at DESC LIMIT ? OFFSET ?")
-    .all(normalizedLimit, normalizedOffset) as RunRow[];
+    .prepare("SELECT * FROM runs WHERE owner_user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
+    .all(context.userId, normalizedLimit, normalizedOffset) as RunRow[];
 
   return {
     runs: rows.map(rowToRun),
@@ -55,9 +62,14 @@ export async function listRuns(limit = 25, offset = 0): Promise<PaginatedRuns> {
   };
 }
 
-export async function getRun(runId: string): Promise<StoredWorkflowRun | null> {
+export async function getRun(
+  runId: string,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<StoredWorkflowRun | null> {
   await migrateLegacyRunsIfNeeded();
-  const row = getDatabase().prepare("SELECT * FROM runs WHERE id = ?").get(runId) as RunRow | undefined;
+  const row = getDatabase()
+    .prepare("SELECT * FROM runs WHERE id = ? AND owner_user_id = ?")
+    .get(runId, context.userId) as RunRow | undefined;
   return row ? rowToRun(row) : null;
 }
 
@@ -92,6 +104,8 @@ function insertOrReplaceRun(run: StoredWorkflowRun): void {
     .prepare(
       `INSERT OR REPLACE INTO runs (
         id,
+        owner_user_id,
+        organization_id,
         action_id,
         workflow_id,
         workflow_version,
@@ -103,10 +117,12 @@ function insertOrReplaceRun(run: StoredWorkflowRun): void {
         result_json,
         error,
         step_log_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       run.id,
+      run.ownerUserId ?? defaultTenantContext.userId,
+      run.organizationId ?? defaultTenantContext.organizationId,
       run.actionId,
       run.workflowId,
       run.workflowVersion,
@@ -123,6 +139,8 @@ function insertOrReplaceRun(run: StoredWorkflowRun): void {
 
 type RunRow = {
   id: string;
+  owner_user_id: string;
+  organization_id: string;
   action_id: string;
   workflow_id: string;
   workflow_version: number;
@@ -139,6 +157,8 @@ type RunRow = {
 function rowToRun(row: RunRow): StoredWorkflowRun {
   return {
     id: row.id,
+    ownerUserId: row.owner_user_id,
+    organizationId: row.organization_id,
     actionId: row.action_id,
     workflowId: row.workflow_id,
     workflowVersion: row.workflow_version,

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { mockPortalUrl } from "../config.js";
+import { defaultTenantContext, type GhostApiTenantContext } from "../storage/accountRepository.js";
 import { createRun, updateRun } from "../storage/runRepository.js";
 import { getWorkflow } from "../storage/workflowRepository.js";
 import { runGetAttendanceWithTrace } from "../runner/getAttendanceRunner.js";
@@ -13,8 +14,11 @@ export type GetAttendanceActionResult = {
   run: StoredWorkflowRun;
 };
 
-export async function executeGetAttendanceAction(credentials: PortalCredentials): Promise<GetAttendanceActionResult> {
-  const workflow = await getWorkflow("get-attendance");
+export async function executeGetAttendanceAction(
+  credentials: PortalCredentials,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<GetAttendanceActionResult> {
+  const workflow = await getWorkflow("get-attendance", context);
   const runId = crypto.randomUUID();
   const now = new Date().toISOString();
   const variables: WorkflowVariables = {
@@ -25,6 +29,8 @@ export async function executeGetAttendanceAction(credentials: PortalCredentials)
 
   await createRun({
     id: runId,
+    ownerUserId: context.userId,
+    organizationId: context.organizationId,
     actionId: "get-attendance",
     workflowId: workflow.id,
     workflowVersion: workflow.version,

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { defaultTenantContext, type GhostApiTenantContext } from "../storage/accountRepository.js";
 import { createRun, updateRun } from "../storage/runRepository.js";
 import { getWorkflow } from "../storage/workflowRepository.js";
 import { WorkflowExecutionError, runWorkflow } from "../workflows/engine/workflowExecutor.js";
@@ -18,9 +19,10 @@ export type ExecuteWorkflowActionResult = {
 
 export async function executeWorkflowAction(
   workflowId: string,
-  variables: WorkflowVariables = {}
+  variables: WorkflowVariables = {},
+  context: GhostApiTenantContext = defaultTenantContext
 ): Promise<ExecuteWorkflowActionResult> {
-  const workflow = await getWorkflow(workflowId);
+  const workflow = await getWorkflow(workflowId, context);
   const runId = crypto.randomUUID();
   const now = new Date().toISOString();
   const mergedVariables: WorkflowVariables = {
@@ -30,6 +32,8 @@ export async function executeWorkflowAction(
 
   await createRun({
     id: runId,
+    ownerUserId: context.userId,
+    organizationId: context.organizationId,
     actionId: workflow.id,
     workflowId: workflow.id,
     workflowVersion: workflow.version,

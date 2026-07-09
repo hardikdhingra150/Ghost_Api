@@ -21,6 +21,13 @@ export const config = {
   browser: {
     headless: process.env.HEADLESS !== "false"
   },
+  cloud: {
+    mode: process.env.GHOSTAPI_MODE ?? "local",
+    defaultUserId: process.env.GHOSTAPI_DEFAULT_USER_ID ?? "local-user",
+    defaultOrgId: process.env.GHOSTAPI_DEFAULT_ORG_ID ?? "local-org",
+    defaultUserEmail: process.env.GHOSTAPI_DEFAULT_USER_EMAIL ?? "local@ghostapi.dev",
+    defaultOrgName: process.env.GHOSTAPI_DEFAULT_ORG_NAME ?? "Local GhostAPI Workspace"
+  },
   storage: {
     dataDir: process.env.GHOSTAPI_DATA_DIR ?? path.join(process.cwd(), "data"),
     databaseFile: process.env.GHOSTAPI_DATABASE_FILE ?? path.join(process.cwd(), "data", "ghostapi.sqlite"),

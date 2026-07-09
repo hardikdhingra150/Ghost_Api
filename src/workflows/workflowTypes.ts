@@ -100,6 +100,8 @@ export type StoredWorkflowRunStatus = "running" | "success" | "failed";
 
 export type StoredWorkflowRun = {
   id: string;
+  ownerUserId: string;
+  organizationId: string;
   actionId: string;
   workflowId: string;
   workflowVersion: number;

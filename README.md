@@ -150,6 +150,7 @@ npm run test:dashboard
 npm run test:attendance
 npm run test:generic
 npm run test:extension
+npm run test:cloud
 ```
 
 ## Main API routes
@@ -173,6 +174,20 @@ curl -X POST http://127.0.0.1:4000/v1/actions/get-attendance/run \
 ```bash
 curl http://127.0.0.1:4000/v1/workflows
 ```
+
+### Current account context
+
+```bash
+curl http://127.0.0.1:4000/v1/me
+```
+
+### Cloud readiness plan
+
+```bash
+curl http://127.0.0.1:4000/v1/cloud/plan
+```
+
+Week 11 adds the hosted-product foundation: local data now has a default user and organization, and workflows/runs/API keys are stored with ownership fields. The product still needs hosted auth, encrypted credential vault, and queue-backed cloud browser workers before normal internet users can use it without running GhostAPI locally.
 
 ### Run a generic workflow
 

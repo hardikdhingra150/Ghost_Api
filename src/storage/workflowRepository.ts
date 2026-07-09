@@ -4,6 +4,7 @@ import { getAttendanceWorkflow } from "../workflows/definitions/getAttendanceWor
 import { googleSearchWorkflow, portalSummaryWorkflow } from "../workflows/definitions/genericWorkflows.js";
 import type { PortalWorkflow } from "../workflows/workflowTypes.js";
 import { validatePortalWorkflow } from "../workflows/workflowValidation.js";
+import { defaultTenantContext, type GhostApiTenantContext } from "./accountRepository.js";
 import { getDatabase } from "./database.js";
 import { readJsonFile } from "./jsonFile.js";
 
@@ -24,14 +25,17 @@ export type WorkflowDiffChange = {
   after: unknown;
 };
 
-export async function getWorkflow(workflowId: string): Promise<PortalWorkflow> {
+export async function getWorkflow(
+  workflowId: string,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<PortalWorkflow> {
   const bundledWorkflow = bundledWorkflows[workflowId];
 
   if (bundledWorkflow) {
-    await seedWorkflowIfNeeded(workflowId, bundledWorkflow);
+    await seedWorkflowIfNeeded(workflowId, bundledWorkflow, context);
   }
 
-  const workflow = findWorkflow(workflowId);
+  const workflow = findWorkflow(workflowId, context);
 
   if (workflow) {
     return workflow;
@@ -41,27 +45,30 @@ export async function getWorkflow(workflowId: string): Promise<PortalWorkflow> {
     throw new Error(`Unknown workflow "${workflowId}"`);
   }
 
-  await saveWorkflow(bundledWorkflow);
+  await saveWorkflow(bundledWorkflow, context);
   return bundledWorkflow;
 }
 
-export async function listWorkflows(): Promise<PortalWorkflow[]> {
-  await Promise.all(Object.keys(bundledWorkflows).map((workflowId) => getWorkflow(workflowId)));
-  return listStoredWorkflows();
+export async function listWorkflows(context: GhostApiTenantContext = defaultTenantContext): Promise<PortalWorkflow[]> {
+  await Promise.all(Object.keys(bundledWorkflows).map((workflowId) => getWorkflow(workflowId, context)));
+  return listStoredWorkflows(context);
 }
 
-export async function saveWorkflow(workflow: PortalWorkflow): Promise<void> {
+export async function saveWorkflow(
+  workflow: PortalWorkflow,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<void> {
   const validatedWorkflow = validatePortalWorkflow(workflow);
   const db = getDatabase();
   const now = new Date().toISOString();
-  const existingWorkflow = findWorkflow(validatedWorkflow.id);
+  const existingWorkflow = findWorkflow(validatedWorkflow.id, context);
   const workflowJson = JSON.stringify(validatedWorkflow);
 
   if (existingWorkflow) {
     db.prepare(
       `UPDATE workflows
        SET portal = ?, name = ?, description = ?, version = ?, json = ?, updated_at = ?
-       WHERE id = ?`
+       WHERE id = ? AND owner_user_id = ?`
     ).run(
       validatedWorkflow.portal,
       validatedWorkflow.name,
@@ -69,14 +76,17 @@ export async function saveWorkflow(workflow: PortalWorkflow): Promise<void> {
       validatedWorkflow.version,
       workflowJson,
       now,
-      validatedWorkflow.id
+      validatedWorkflow.id,
+      context.userId
     );
   } else {
     db.prepare(
-      `INSERT INTO workflows (id, portal, name, description, version, json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO workflows (id, owner_user_id, organization_id, portal, name, description, version, json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       validatedWorkflow.id,
+      context.userId,
+      context.organizationId,
       validatedWorkflow.portal,
       validatedWorkflow.name,
       validatedWorkflow.description,
@@ -88,22 +98,25 @@ export async function saveWorkflow(workflow: PortalWorkflow): Promise<void> {
   }
 
   db.prepare(
-    `INSERT INTO workflow_versions (workflow_id, version, json, created_at)
-     VALUES (?, ?, ?, ?)`
-  ).run(validatedWorkflow.id, validatedWorkflow.version, workflowJson, now);
+    `INSERT INTO workflow_versions (workflow_id, owner_user_id, organization_id, version, json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(validatedWorkflow.id, context.userId, context.organizationId, validatedWorkflow.version, workflowJson, now);
 }
 
-export async function listWorkflowVersions(workflowId: string): Promise<WorkflowVersionSummary[]> {
-  await getWorkflow(workflowId);
+export async function listWorkflowVersions(
+  workflowId: string,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<WorkflowVersionSummary[]> {
+  await getWorkflow(workflowId, context);
 
   const rows = getDatabase()
     .prepare(
       `SELECT version, created_at
        FROM workflow_versions
-       WHERE workflow_id = ?
+       WHERE workflow_id = ? AND owner_user_id = ?
        ORDER BY version DESC`
     )
-    .all(workflowId) as { version: number; created_at: string }[];
+    .all(workflowId, context.userId) as { version: number; created_at: string }[];
 
   return rows.map((row) => ({
     version: row.version,
@@ -111,46 +124,55 @@ export async function listWorkflowVersions(workflowId: string): Promise<Workflow
   }));
 }
 
-export async function getWorkflowVersion(workflowId: string, version: number): Promise<PortalWorkflow | null> {
-  await getWorkflow(workflowId);
+export async function getWorkflowVersion(
+  workflowId: string,
+  version: number,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<PortalWorkflow | null> {
+  await getWorkflow(workflowId, context);
 
   const row = getDatabase()
     .prepare(
       `SELECT json
        FROM workflow_versions
-       WHERE workflow_id = ? AND version = ?
+       WHERE workflow_id = ? AND version = ? AND owner_user_id = ?
        ORDER BY id DESC
        LIMIT 1`
     )
-    .get(workflowId, version) as { json: string } | undefined;
+    .get(workflowId, version, context.userId) as { json: string } | undefined;
 
   return row ? validatePortalWorkflow(JSON.parse(row.json)) : null;
 }
 
-export async function restoreWorkflowVersion(workflowId: string, version: number): Promise<PortalWorkflow | null> {
-  const workflowVersion = await getWorkflowVersion(workflowId, version);
+export async function restoreWorkflowVersion(
+  workflowId: string,
+  version: number,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<PortalWorkflow | null> {
+  const workflowVersion = await getWorkflowVersion(workflowId, version, context);
 
   if (!workflowVersion) {
     return null;
   }
 
-  const currentWorkflow = await getWorkflow(workflowId);
+  const currentWorkflow = await getWorkflow(workflowId, context);
   const restoredWorkflow = {
     ...workflowVersion,
     version: currentWorkflow.version + 1
   };
 
-  await saveWorkflow(restoredWorkflow);
+  await saveWorkflow(restoredWorkflow, context);
   return restoredWorkflow;
 }
 
 export async function diffWorkflowVersions(
   workflowId: string,
   fromVersion: number,
-  toVersion: number
+  toVersion: number,
+  context: GhostApiTenantContext = defaultTenantContext
 ): Promise<{ from: PortalWorkflow; to: PortalWorkflow; changes: WorkflowDiffChange[] } | null> {
-  const from = await getWorkflowVersion(workflowId, fromVersion);
-  const to = await getWorkflowVersion(workflowId, toVersion);
+  const from = await getWorkflowVersion(workflowId, fromVersion, context);
+  const to = await getWorkflowVersion(workflowId, toVersion, context);
 
   if (!from || !to) {
     return null;
@@ -167,19 +189,23 @@ function getWorkflowPath(workflowId: string): string {
   return path.join(config.storage.workflowsDir, `${workflowId}.json`);
 }
 
-async function seedWorkflowIfNeeded(workflowId: string, bundledWorkflow: PortalWorkflow): Promise<void> {
-  if (findWorkflow(workflowId)) {
+async function seedWorkflowIfNeeded(
+  workflowId: string,
+  bundledWorkflow: PortalWorkflow,
+  context: GhostApiTenantContext
+): Promise<void> {
+  if (findWorkflow(workflowId, context)) {
     return;
   }
 
   const legacyWorkflow = await readJsonFile<PortalWorkflow | null>(getWorkflowPath(workflowId), null);
-  await saveWorkflow(legacyWorkflow ?? bundledWorkflow);
+  await saveWorkflow(legacyWorkflow ?? bundledWorkflow, context);
 }
 
-function findWorkflow(workflowId: string): PortalWorkflow | null {
+function findWorkflow(workflowId: string, context: GhostApiTenantContext): PortalWorkflow | null {
   const row = getDatabase()
-    .prepare("SELECT json FROM workflows WHERE id = ?")
-    .get(workflowId) as { json: string } | undefined;
+    .prepare("SELECT json FROM workflows WHERE id = ? AND owner_user_id = ?")
+    .get(workflowId, context.userId) as { json: string } | undefined;
 
   if (!row) {
     return null;
@@ -188,10 +214,10 @@ function findWorkflow(workflowId: string): PortalWorkflow | null {
   return validatePortalWorkflow(JSON.parse(row.json));
 }
 
-function listStoredWorkflows(): PortalWorkflow[] {
+function listStoredWorkflows(context: GhostApiTenantContext): PortalWorkflow[] {
   const rows = getDatabase()
-    .prepare("SELECT json FROM workflows ORDER BY updated_at DESC")
-    .all() as { json: string }[];
+    .prepare("SELECT json FROM workflows WHERE owner_user_id = ? ORDER BY updated_at DESC")
+    .all(context.userId) as { json: string }[];
 
   return rows.map((row) => validatePortalWorkflow(JSON.parse(row.json)));
 }
