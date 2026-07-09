@@ -20,7 +20,8 @@ Website UI
 
 - Fastify HTTP API
 - Playwright browser automation engine
-- Browser bookmarklet recorder for creating APIs directly from websites
+- Chrome/Edge extension recorder for creating APIs directly from websites
+- Bookmarklet fallback for quick experiments
 - Workflow JSON format
 - Generic workflow runner
 - Mock college portal for safe local testing
@@ -59,7 +60,7 @@ Open:
 http://127.0.0.1:4000/dashboard
 ```
 
-## Create an API from any website with the bookmarklet
+## Create an API from any website with the extension
 
 1. Start GhostAPI:
 
@@ -73,13 +74,22 @@ http://127.0.0.1:4000/dashboard
    http://127.0.0.1:4000/dashboard
    ```
 
-3. Click `Install bookmark` in the Browser bookmark panel.
+3. Install the extension:
 
-4. GhostAPI copies the bookmarklet and shows browser-specific save steps. Press `⌘ + D` on Mac or `Ctrl + D` on Windows/Linux, edit the bookmark URL, paste the copied code, and save it as `👻 GhostAPI Capture`.
+   - Open `chrome://extensions` or `edge://extensions`.
+   - Enable `Developer mode`.
+   - Click `Load unpacked`.
+   - Select this folder:
+
+     ```txt
+     extensions/chrome
+     ```
+
+4. Pin `👻 GhostAPI Capture` in the browser toolbar.
 
 5. Open a website such as Google, Instagram, a college portal, or an internal dashboard.
 
-6. Click the visible `👻 GhostAPI Capture` bookmark.
+6. Click the extension and choose `Open recorder on this page`.
 
 7. Use the floating recorder:
 
@@ -96,7 +106,11 @@ http://127.0.0.1:4000/dashboard
      -d '{"variables":{}}'
    ```
 
-Some websites use strict Content Security Policy rules, CAPTCHA, login challenges, or bot protection. The bookmarklet is the fastest local prototype. For hardened production usage, GhostAPI should ship a Chrome extension recorder with human-review handling for CAPTCHA, consent, MFA, and blocked automation.
+The extension is the recommended production path because it is more reliable than a bookmarklet. Some websites can still show CAPTCHA, login challenges, MFA, or bot protection. GhostAPI should pause for human review in those cases instead of bypassing protections.
+
+## Bookmarklet fallback
+
+The dashboard still includes a bookmarklet fallback for quick experiments. Use it only if you do not want to load the extension.
 
 Health check:
 
@@ -111,6 +125,7 @@ npm run check
 npm run test:dashboard
 npm run test:attendance
 npm run test:generic
+npm run test:extension
 ```
 
 ## Main API routes

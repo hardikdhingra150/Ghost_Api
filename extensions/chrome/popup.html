@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GhostAPI Capture</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main>
+    <div class="brand">
+      <span class="ghost">👻</span>
+      <div>
+        <h1>GhostAPI Capture</h1>
+        <p>Turn the current website into an API workflow.</p>
+      </div>
+    </div>
+
+    <label>
+      GhostAPI server
+      <input id="baseUrl" value="http://127.0.0.1:4000" />
+    </label>
+
+    <button id="startRecorder">Open recorder on this page</button>
+    <button id="openDashboard" class="secondary">Open dashboard</button>
+
+    <div id="status" class="status">Start GhostAPI locally, then open the recorder.</div>
+
+    <section>
+      <strong>How it works</strong>
+      <ol>
+        <li>Open a site like Google, Instagram, or a portal.</li>
+        <li>Click “Open recorder”.</li>
+        <li>Record clicks/fills or pick data to extract.</li>
+        <li>Save the workflow as an API.</li>
+      </ol>
+    </section>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

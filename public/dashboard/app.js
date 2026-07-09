@@ -81,7 +81,8 @@ const els = {
   installBookmarkletButton: document.querySelector("#installBookmarkletButton"),
   copyBookmarkletButton: document.querySelector("#copyBookmarkletButton"),
   bookmarkletCode: document.querySelector("#bookmarkletCode"),
-  bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide")
+  bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide"),
+  copyExtensionPathButton: document.querySelector("#copyExtensionPathButton")
 };
 
 els.runButton.addEventListener("click", runAttendance);
@@ -97,6 +98,7 @@ els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersio
 els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
 els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
 els.installBookmarkletButton.addEventListener("click", installBookmarklet);
+els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
 
 boot();
 
@@ -129,6 +131,11 @@ async function installBookmarklet() {
 
 function showBookmarkInstallGuide() {
   els.bookmarkInstallGuide.hidden = false;
+}
+
+async function copyExtensionPath() {
+  await navigator.clipboard.writeText("extensions/chrome");
+  setStatus("Extension folder copied. Open chrome://extensions, Load unpacked, then select extensions/chrome.");
 }
 
 async function requestJson(url, options) {

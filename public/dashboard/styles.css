@@ -179,11 +179,22 @@ button.blue { color: white; background: var(--blue); }
   background: #f0ecff;
 }
 
-.bookmark-install-card {
+.bookmark-install-card,
+.extension-install-card {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: stretch;
+}
+
+.extension-install-card code {
+  display: flex;
+  align-items: center;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  background: white;
+  padding: 12px 14px;
+  box-shadow: 3px 3px 0 var(--line);
 }
 
 .bookmarklet-code {

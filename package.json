@@ -10,7 +10,8 @@
     "check": "tsc --noEmit",
     "test:attendance": "tsx src/scripts/test-attendance.ts",
     "test:dashboard": "tsx src/scripts/test-dashboard.ts",
-    "test:generic": "tsx src/scripts/test-generic-workflow.ts"
+    "test:generic": "tsx src/scripts/test-generic-workflow.ts",
+    "test:extension": "tsx src/scripts/test-extension.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.55.0",

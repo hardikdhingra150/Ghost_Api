@@ -87,15 +87,35 @@
 
         <div class="panel recorder-panel">
           <div class="row space">
-            <h2>Browser bookmark</h2>
-            <span class="pill">create APIs anywhere</span>
+            <h2>Browser extension</h2>
+            <span class="pill">recommended</span>
           </div>
-          <p>Install a GhostAPI bookmark once, then click it on Google, Instagram, college portals, or any website you want to turn into an API.</p>
-          <div class="bookmark-install-card">
-            <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
-            <button id="installBookmarkletButton" class="blue">Install bookmark</button>
+          <p>Use the Chrome/Edge extension to open the GhostAPI recorder directly on Google, Instagram, portals, and other websites.</p>
+          <div class="extension-install-card">
+            <code>extensions/chrome</code>
+            <button id="copyExtensionPathButton" class="blue">Copy extension path</button>
           </div>
+          <div class="install-guide">
+            <strong>Install extension locally:</strong>
+            <ol>
+              <li>Open <code>chrome://extensions</code> or <code>edge://extensions</code>.</li>
+              <li>Enable <code>Developer mode</code>.</li>
+              <li>Click <code>Load unpacked</code>.</li>
+              <li>Select the project folder <code>extensions/chrome</code>.</li>
+              <li>Pin <code>👻 GhostAPI Capture</code>, open any website, and click the extension.</li>
+            </ol>
+          </div>
+          <p class="muted tiny">The extension is now the main production path. The bookmarklet fallback is still available below for quick experiments.</p>
+        </div>
+
+        <div class="panel recorder-panel">
+          <div class="row space">
+            <h2>Bookmark fallback</h2>
+            <span class="pill">quick prototype</span>
+          </div>
+          <p>If you do not want to load the extension, you can still install the bookmarklet fallback.</p>
           <div class="row">
+            <button id="installBookmarkletButton" class="blue">Install bookmark</button>
             <button class="secondary" id="copyBookmarkletButton">Copy bookmarklet</button>
             <a class="pill" href="/capture/bookmarklet.js" target="_blank" rel="noreferrer">View script</a>
           </div>
@@ -108,7 +128,8 @@
               <li>Save it to your bookmarks bar. You will now see it as a normal bookmark.</li>
             </ol>
           </div>
-          <p class="muted tiny">Some sites use strict browser security rules. If the bookmarklet is blocked, the production path is the GhostAPI Chrome extension.</p>
+          <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
+          <p class="muted tiny">Some sites use strict browser security rules. If the bookmarklet is blocked, use the GhostAPI extension above.</p>
           <textarea id="bookmarkletCode" class="bookmarklet-code" readonly></textarea>
         </div>
 
