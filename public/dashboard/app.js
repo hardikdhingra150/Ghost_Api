@@ -78,8 +78,10 @@ const els = {
   statusMetric: document.querySelector("#statusMetric")
   ,
   bookmarkletLink: document.querySelector("#bookmarkletLink"),
+  installBookmarkletButton: document.querySelector("#installBookmarkletButton"),
   copyBookmarkletButton: document.querySelector("#copyBookmarkletButton"),
-  bookmarkletCode: document.querySelector("#bookmarkletCode")
+  bookmarkletCode: document.querySelector("#bookmarkletCode"),
+  bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide")
 };
 
 els.runButton.addEventListener("click", runAttendance);
@@ -94,6 +96,7 @@ els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
 els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
 els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
 els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
+els.installBookmarkletButton.addEventListener("click", installBookmarklet);
 
 boot();
 
@@ -113,7 +116,19 @@ function setupBookmarklet() {
 
 async function copyBookmarklet() {
   await navigator.clipboard.writeText(els.bookmarkletCode.value);
-  setStatus("GhostAPI bookmarklet copied. Create a new bookmark and paste it as the URL.");
+  showBookmarkInstallGuide();
+  setStatus("GhostAPI bookmarklet copied. Save it as a browser bookmark.");
+}
+
+async function installBookmarklet() {
+  await navigator.clipboard.writeText(els.bookmarkletCode.value);
+  showBookmarkInstallGuide();
+  els.installBookmarkletButton.textContent = "Copied — now save bookmark";
+  setStatus("Bookmark code copied. Press ⌘D or Ctrl+D, edit the bookmark URL, and paste it.");
+}
+
+function showBookmarkInstallGuide() {
+  els.bookmarkInstallGuide.hidden = false;
 }
 
 async function requestJson(url, options) {

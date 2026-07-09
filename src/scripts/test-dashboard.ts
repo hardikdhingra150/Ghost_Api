@@ -17,6 +17,10 @@ if (!html.includes("GhostAPI Capture")) {
   throw new Error("Dashboard HTML did not include the GhostAPI bookmarklet");
 }
 
+if (!html.includes("Install bookmark")) {
+  throw new Error("Dashboard HTML did not include the bookmark installer button");
+}
+
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
@@ -50,7 +54,7 @@ console.log(
         logo: logoResponse.status,
         bookmarklet: bookmarkletResponse.status
       },
-      contains: ["GhostAPI Dashboard", "Run attendance", "GhostAPI Capture"]
+      contains: ["GhostAPI Dashboard", "Run attendance", "GhostAPI Capture", "Install bookmark"]
     },
     null,
     2

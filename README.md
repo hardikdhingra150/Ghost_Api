@@ -73,20 +73,22 @@ http://127.0.0.1:4000/dashboard
    http://127.0.0.1:4000/dashboard
    ```
 
-3. Drag `👻 GhostAPI Capture` from the dashboard into your browser bookmarks bar.
+3. Click `Install bookmark` in the Browser bookmark panel.
 
-4. Open a website such as Google, Instagram, a college portal, or an internal dashboard.
+4. GhostAPI copies the bookmarklet and shows browser-specific save steps. Press `⌘ + D` on Mac or `Ctrl + D` on Windows/Linux, edit the bookmark URL, paste the copied code, and save it as `👻 GhostAPI Capture`.
 
-5. Click the `👻 GhostAPI Capture` bookmark.
+5. Open a website such as Google, Instagram, a college portal, or an internal dashboard.
 
-6. Use the floating recorder:
+6. Click the visible `👻 GhostAPI Capture` bookmark.
+
+7. Use the floating recorder:
 
    - `Record clicks/fills` captures normal clicks and typed fields.
    - `Pick data to extract` lets you click visible text and name it as JSON output.
    - `Preview JSON` shows the generated workflow.
    - `Save API` stores it in GhostAPI.
 
-7. Run your new API:
+8. Run your new API:
 
    ```bash
    curl -X POST http://127.0.0.1:4000/v1/workflows/YOUR_WORKFLOW_ID/run \

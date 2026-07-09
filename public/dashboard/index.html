@@ -90,11 +90,23 @@
             <h2>Browser bookmark</h2>
             <span class="pill">create APIs anywhere</span>
           </div>
-          <p>Drag this bookmark to your browser bookmarks bar, then click it on Google, Instagram, college portals, or any site you want to turn into an API.</p>
-          <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
+          <p>Install a GhostAPI bookmark once, then click it on Google, Instagram, college portals, or any website you want to turn into an API.</p>
+          <div class="bookmark-install-card">
+            <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
+            <button id="installBookmarkletButton" class="blue">Install bookmark</button>
+          </div>
           <div class="row">
             <button class="secondary" id="copyBookmarkletButton">Copy bookmarklet</button>
             <a class="pill" href="/capture/bookmarklet.js" target="_blank" rel="noreferrer">View script</a>
+          </div>
+          <div id="bookmarkInstallGuide" class="install-guide" hidden>
+            <strong>Bookmark copied. Save it like this:</strong>
+            <ol>
+              <li>Press <kbd>⌘</kbd> + <kbd>D</kbd> on Mac or <kbd>Ctrl</kbd> + <kbd>D</kbd> on Windows/Linux.</li>
+              <li>Name it <code>👻 GhostAPI Capture</code>.</li>
+              <li>Click <code>Edit</code> or <code>More</code>, then paste the copied code into the URL field.</li>
+              <li>Save it to your bookmarks bar. You will now see it as a normal bookmark.</li>
+            </ol>
           </div>
           <p class="muted tiny">Some sites use strict browser security rules. If the bookmarklet is blocked, the production path is the GhostAPI Chrome extension.</p>
           <textarea id="bookmarkletCode" class="bookmarklet-code" readonly></textarea>
