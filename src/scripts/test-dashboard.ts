@@ -37,6 +37,14 @@ if (!html.includes("Week 11 cloud foundation")) {
   throw new Error("Dashboard HTML did not include Week 11 cloud foundation panel");
 }
 
+if (!html.includes("Week 12 extension readiness")) {
+  throw new Error("Dashboard HTML did not include Week 12 extension readiness panel");
+}
+
+if (!html.includes("Chrome Web Store preparation")) {
+  throw new Error("Dashboard HTML did not include Chrome Web Store preparation text");
+}
+
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
@@ -78,7 +86,9 @@ console.log(
         "Browser extension",
         "Setup commands",
         "npm run package:extension",
-        "Week 11 cloud foundation"
+        "Week 11 cloud foundation",
+        "Week 12 extension readiness",
+        "Chrome Web Store preparation"
       ]
     },
     null,

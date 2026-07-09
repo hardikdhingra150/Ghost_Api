@@ -1,5 +1,7 @@
 const els = {
   baseUrl: document.querySelector("#baseUrl"),
+  useLocalServer: document.querySelector("#useLocalServer"),
+  useCloudServer: document.querySelector("#useCloudServer"),
   checkServer: document.querySelector("#checkServer"),
   startRecorder: document.querySelector("#startRecorder"),
   openDashboard: document.querySelector("#openDashboard"),
@@ -16,9 +18,17 @@ async function boot() {
 
   els.baseUrl.addEventListener("change", saveBaseUrl);
   els.baseUrl.addEventListener("input", updateEndpointPreview);
+  els.useLocalServer.addEventListener("click", () => setServer("http://127.0.0.1:4000"));
+  els.useCloudServer.addEventListener("click", () => setServer("https://api.ghostapi.app"));
   els.checkServer.addEventListener("click", checkServer);
   els.startRecorder.addEventListener("click", startRecorder);
   els.openDashboard.addEventListener("click", openDashboard);
+}
+
+async function setServer(baseUrl) {
+  els.baseUrl.value = baseUrl;
+  await saveBaseUrl();
+  setStatus(baseUrl.includes("127.0.0.1") ? "Local server selected." : "Cloud server selected. Use this after GhostAPI cloud is deployed.");
 }
 
 async function saveBaseUrl() {

@@ -21,6 +21,7 @@ Website UI
 - Fastify HTTP API
 - Playwright browser automation engine
 - Chrome/Edge extension recorder for creating APIs directly from websites
+- Chrome Web Store readiness docs for the extension
 - Bookmarklet fallback for quick experiments
 - Workflow JSON format
 - Generic workflow runner
@@ -131,6 +132,36 @@ extensions/dist/ghostapi-capture.zip
 ```
 
 That ZIP is the file you submit to the Chrome Web Store when the product is ready. Do not commit `.pem`, `.crx`, or `.zip` package artifacts.
+
+## Week 12 extension store readiness
+
+Week 12 moves the extension closer to public distribution:
+
+- Manifest V3
+- reduced permissions: `activeTab`, `scripting`, `storage`
+- local/cloud server switcher in the popup
+- server connection check
+- privacy note in the extension
+- Chrome permission justification
+- Chrome Web Store listing draft
+- package command for extension ZIP
+
+Store-readiness docs:
+
+```txt
+extensions/PRIVACY.md
+extensions/PERMISSIONS.md
+extensions/STORE_LISTING.md
+```
+
+Still needed before public Chrome Web Store launch:
+
+- final extension icons
+- screenshots and promo tiles
+- hosted privacy policy URL
+- hosted support URL
+- Chrome Web Store developer account
+- production cloud API endpoint
 
 ## Bookmarklet fallback
 

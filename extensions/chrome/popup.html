@@ -21,6 +21,11 @@
       <input id="baseUrl" value="http://127.0.0.1:4000" />
     </label>
 
+    <div class="quick-switch">
+      <button id="useLocalServer" class="secondary">Use local</button>
+      <button id="useCloudServer" class="secondary">Use cloud</button>
+    </div>
+
     <button id="checkServer" class="secondary">Check server connection</button>
     <button id="startRecorder">Open recorder on this page</button>
     <button id="openDashboard" class="secondary">Open dashboard</button>
@@ -41,6 +46,11 @@
         <li>Record clicks/fills or pick data to extract.</li>
         <li>Save the workflow as an API.</li>
       </ol>
+    </section>
+
+    <section class="privacy-note">
+      <strong>Privacy by design</strong>
+      <p>GhostAPI records only after you click the extension. Password fields are stored as variables, not raw text.</p>
     </section>
   </main>
   <script src="popup.js"></script>

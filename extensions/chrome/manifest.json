@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
   "name": "GhostAPI Capture",
+  "short_name": "GhostAPI",
   "version": "0.1.0",
   "description": "Record browser actions on any website and save them as GhostAPI workflows.",
+  "homepage_url": "https://github.com/hardikdhingra150/Ghost_Api",
   "action": {
     "default_title": "GhostAPI Capture",
     "default_popup": "popup.html"
@@ -10,9 +12,11 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "http://127.0.0.1:4000/*",
-    "http://localhost:4000/*"
+    "http://localhost:4000/*",
+    "https://api.ghostapi.app/*",
+    "https://*.ghostapi.app/*"
   ]
 }

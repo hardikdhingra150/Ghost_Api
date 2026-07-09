@@ -45,3 +45,11 @@ extensions/dist/ghostapi-capture.zip
 Upload that ZIP to the Chrome Web Store when the product is ready.
 
 Do not commit `.pem`, `.crx`, or packaged `.zip` files. The `.pem` file is a private signing key.
+
+## Store-readiness files
+
+- `PRIVACY.md` — privacy policy draft
+- `PERMISSIONS.md` — Chrome permission justification
+- `STORE_LISTING.md` — Chrome Web Store listing draft
+
+Before public release, create production icons, host the privacy policy, and submit `extensions/dist/ghostapi-capture.zip` through a Chrome Web Store developer account.

@@ -128,6 +128,39 @@ GET /v1/cloud/plan</code></pre>
       </div>
     </section>
 
+    <section class="setup-panel store-panel">
+      <div class="row space">
+        <div>
+          <p class="eyebrow mini-eyebrow">Week 12 extension readiness</p>
+          <h2>Chrome Web Store preparation</h2>
+        </div>
+        <button class="secondary copy-command" data-command="npm run test:extension&#10;npm run package:extension">Copy store checks</button>
+      </div>
+      <div class="command-grid">
+        <div class="command-card green-card">
+          <span class="pill">done</span>
+          <h3>Minimal permissions</h3>
+          <p>Extension uses activeTab, scripting, and storage. It avoids broad tabs and all-sites permissions.</p>
+        </div>
+        <div class="command-card green-card">
+          <span class="pill">done</span>
+          <h3>Privacy docs</h3>
+          <p>Privacy, permissions, and store listing drafts live in the extensions folder.</p>
+        </div>
+        <div class="command-card yellow-card">
+          <span class="pill">todo</span>
+          <h3>Store assets</h3>
+          <p>Before public launch, create final icons, screenshots, promo images, and a hosted privacy URL.</p>
+        </div>
+        <div class="command-card">
+          <span class="pill">ship</span>
+          <h3>Build package</h3>
+          <pre><code>npm run test:extension
+npm run package:extension</code></pre>
+        </div>
+      </div>
+    </section>
+
     <main>
       <section class="stack">
         <div class="panel">
