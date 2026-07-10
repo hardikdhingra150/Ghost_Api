@@ -7,6 +7,9 @@ import { resolveTarget } from "./targetResolver.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+const defaultGotoTimeoutMs = 15000;
+const defaultStepTimeoutMs = 8000;
+
 export class WorkflowExecutionError extends Error {
   constructor(
     message: string,
@@ -100,38 +103,43 @@ async function executeStep(
 ): Promise<void> {
   if (step.type === "goto") {
     await context.page.goto(interpolate(step.url, context.variables), {
-      waitUntil: "domcontentloaded"
+      waitUntil: "domcontentloaded",
+      timeout: defaultGotoTimeoutMs
     });
     return;
   }
 
   if (step.type === "fill") {
-    await resolveTarget(context.page, step.target).fill(interpolate(step.value, context.variables));
+    await resolveTarget(context.page, step.target).first().fill(interpolate(step.value, context.variables), {
+      timeout: defaultStepTimeoutMs
+    });
     return;
   }
 
   if (step.type === "click") {
-    await resolveTarget(context.page, step.target).first().click();
+    await resolveTarget(context.page, step.target).first().click({ timeout: defaultStepTimeoutMs });
     return;
   }
 
   if (step.type === "wait_for_url") {
-    await context.page.waitForURL(step.pattern, { timeout: step.timeoutMs ?? 5000 });
+    await context.page.waitForURL(step.pattern, { timeout: step.timeoutMs ?? defaultStepTimeoutMs });
     return;
   }
 
   if (step.type === "wait_for_selector") {
-    await context.page.waitForSelector(step.selector, { timeout: step.timeoutMs ?? 5000 });
+    await context.page.waitForSelector(step.selector, { timeout: step.timeoutMs ?? defaultStepTimeoutMs });
     return;
   }
 
   if (step.type === "extract_text") {
-    context.data[step.name] = await context.page.locator(step.selector).innerText();
+    context.data[step.name] = await context.page.locator(step.selector).first().innerText({
+      timeout: defaultStepTimeoutMs
+    });
     return;
   }
 
   if (step.type === "extract_table") {
-    context.data[step.name] = await extractTable(context.page.locator(step.selector), step.columns);
+    context.data[step.name] = await extractTable(context.page.locator(step.selector).first(), step.columns);
     return;
   }
 

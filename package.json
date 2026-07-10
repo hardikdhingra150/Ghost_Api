@@ -18,7 +18,8 @@
     "test:cloud": "tsx src/scripts/test-cloud.ts",
     "test:deployment": "tsx src/scripts/test-deployment.ts",
     "package:extension": "node src/scripts/package-extension.mjs",
-    "migrate:postgres": "tsx src/scripts/migrate-sqlite-to-postgres.ts"
+    "migrate:postgres": "tsx src/scripts/migrate-sqlite-to-postgres.ts",
+    "test:workflow-strict": "tsx src/scripts/test-workflow-strict-selector.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.55.0",
