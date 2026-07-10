@@ -30,12 +30,24 @@ if (!pageText?.includes("Welcome, Hardik")) {
   throw new Error("Generic workflow did not extract the expected portal page text");
 }
 
+const getResponse = await fetch("http://127.0.0.1:4000/v1/workflows/portal-summary/run");
+const getPayload = (await getResponse.json()) as typeof payload;
+
+if (!getResponse.ok || !getPayload.ok) {
+  throw new Error(`Generic workflow GET test failed: ${getPayload.error ?? getResponse.statusText}`);
+}
+
+if (!getPayload.result?.data?.pageText?.includes("Welcome, Hardik")) {
+  throw new Error("Generic workflow GET route did not extract the expected portal page text");
+}
+
 console.log(
   JSON.stringify(
     {
       ok: true,
       workflowId: payload.workflowId,
       runId: payload.runId,
+      getRunId: getPayload.runId,
       outputKeys: Object.keys(payload.result?.data ?? {}),
       contains: "Welcome, Hardik"
     },

@@ -14,7 +14,8 @@
     workflowName: titleCase(location.hostname.replace(/^www\./, "") + " API"),
     startedAtUrl: location.href,
     steps: [],
-    outputFields: {}
+    outputFields: {},
+    defaultVariables: {}
   };
 
   chrome.storage.sync.get(["ghostApiBaseUrl"], (stored) => {
@@ -108,6 +109,7 @@
   });
 
   document.addEventListener("click", captureClick, true);
+  document.addEventListener("input", captureInput, true);
   document.addEventListener("change", captureInput, true);
   document.addEventListener("mouseover", highlightExtractTarget, true);
   document.addEventListener("mouseout", unhighlightExtractTarget, true);
@@ -118,23 +120,25 @@
     if (root.contains(event.target)) return;
     if (!(event.target instanceof Element)) return;
 
+    const targetElement = bestTargetElement(event.target);
+
     if (state.mode === "extract") {
       event.preventDefault();
       event.stopPropagation();
-      const suggested = slugify((event.target.innerText || event.target.getAttribute("aria-label") || event.target.id || "field").slice(0, 30)) || "field";
+      const suggested = slugify((readableName(targetElement) || "field").slice(0, 30)) || "field";
       const fieldName = prompt("Name this extracted JSON field:", suggested);
       if (!fieldName) return;
       const name = uniqueStepName(slugify(fieldName));
-      state.steps.push({ id: uniqueStepId("extract-" + name), type: "extract_text", name, selector: cssSelector(event.target) });
+      state.steps.push({ id: uniqueStepId("extract-" + name), type: "extract_text", name, selector: cssSelector(targetElement) });
       state.outputFields[name] = name;
       render();
       setStatus(`Extraction added: ${name}`);
       return;
     }
 
-    const tag = event.target.tagName.toLowerCase();
+    const tag = targetElement.tagName.toLowerCase();
     if (["input", "textarea", "select", "option", "label"].includes(tag)) return;
-    state.steps.push({ id: uniqueStepId("click-" + slugify(readableName(event.target))), type: "click", target: "css:" + cssSelector(event.target) });
+    state.steps.push({ id: uniqueStepId("click-" + slugify(readableName(targetElement))), type: "click", target: "css:" + cssSelector(targetElement) });
     render();
     setStatus("Click recorded. If the page navigates, reopen GhostAPI from the extension.");
   }
@@ -143,11 +147,22 @@
     if (root.contains(event.target) || state.mode !== "record") return;
     const target = event.target;
     if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
-    const isSecret = target instanceof HTMLInputElement && target.type === "password";
-    const variableName = slugify(target.name || target.id || target.placeholder || "input") || "input";
-    state.steps.push({ id: uniqueStepId("fill-" + variableName), type: "fill", target: "css:" + cssSelector(target), value: isSecret ? `{{${variableName}}}` : target.value });
+    const variableName = variableNameForInput(target);
+    const selector = "css:" + cssSelector(target);
+    const value = shouldUseVariable(target) ? `{{${variableName}}}` : target.value;
+    const existingStep = state.steps.find((step) => step.type === "fill" && step.target === selector);
+
+    if (shouldUseVariable(target) && !(variableName in state.defaultVariables)) {
+      state.defaultVariables[variableName] = "";
+    }
+
+    if (existingStep) {
+      existingStep.value = value;
+    } else {
+      state.steps.push({ id: uniqueStepId("fill-" + variableName), type: "fill", target: selector, value });
+    }
     render();
-    setStatus(isSecret ? "Password fill recorded as a variable, not raw text." : "Fill recorded.");
+    setStatus(shouldUseVariable(target) ? `${variableName} fill recorded as a variable.` : "Fill recorded.");
   }
 
   function highlightExtractTarget(event) {
@@ -181,7 +196,7 @@
       name: state.workflowName,
       description: "Created with the GhostAPI browser extension recorder.",
       version: 1,
-      defaultVariables: { pageUrl: state.startedAtUrl },
+      defaultVariables: { pageUrl: state.startedAtUrl, ...state.defaultVariables },
       steps,
       output: { type: "generic", sourcePortal: location.hostname.replace(/^www\./, "") || "website", fields: outputFields }
     };
@@ -206,7 +221,7 @@
       const payload = await response.json();
       if (!response.ok || payload.ok === false) throw new Error(payload.details || payload.error || `Save failed: ${response.status}`);
       ui.json.value = JSON.stringify(payload.workflow, null, 2);
-      setStatus(`Saved. Run POST ${state.baseUrl}/v1/workflows/${workflow.id}/run`);
+      setStatus(`Saved. Open ${state.baseUrl}/v1/workflows/${workflow.id}/run or POST the same URL.`);
     } catch (error) {
       setStatus("Save failed: " + error.message);
     }
@@ -234,6 +249,7 @@
 
   function closeRecorder() {
     document.removeEventListener("click", captureClick, true);
+    document.removeEventListener("input", captureInput, true);
     document.removeEventListener("change", captureInput, true);
     document.removeEventListener("mouseover", highlightExtractTarget, true);
     document.removeEventListener("mouseout", unhighlightExtractTarget, true);
@@ -276,6 +292,10 @@
 
   function cssSelector(element) {
     if (element.id && !element.id.includes(" ")) return "#" + cssEscape(element.id);
+    if (element.getAttribute("name")) return `${element.nodeName.toLowerCase()}[name="${cssEscape(element.getAttribute("name"))}"]`;
+    if (element.getAttribute("placeholder")) return `${element.nodeName.toLowerCase()}[placeholder="${cssEscape(element.getAttribute("placeholder"))}"]`;
+    if (element.getAttribute("aria-label")) return `${element.nodeName.toLowerCase()}[aria-label="${cssEscape(element.getAttribute("aria-label"))}"]`;
+    if (element.getAttribute("autocomplete")) return `${element.nodeName.toLowerCase()}[autocomplete="${cssEscape(element.getAttribute("autocomplete"))}"]`;
     const parts = [];
     let current = element;
     while (current && current.nodeType === Node.ELEMENT_NODE && current !== document.body && parts.length < 5) {
@@ -302,7 +322,26 @@
   }
 
   function readableName(element) {
-    return (element.getAttribute("aria-label") || element.getAttribute("title") || element.innerText || element.id || element.className || element.tagName || "element").toString().slice(0, 40);
+    return (element.getAttribute("aria-label") || element.getAttribute("placeholder") || element.getAttribute("name") || element.getAttribute("title") || element.innerText || element.id || element.className || element.tagName || "element").toString().slice(0, 40);
+  }
+
+  function bestTargetElement(element) {
+    if (!(element instanceof Element)) return element;
+    const control = element.closest("input, textarea, select, button, a, [role='button'], [data-testid], [aria-label]");
+    return control || element;
+  }
+
+  function shouldUseVariable(element) {
+    if (element instanceof HTMLInputElement && ["password", "email", "tel"].includes(element.type)) return true;
+    const label = `${element.name || ""} ${element.id || ""} ${element.placeholder || ""} ${element.getAttribute("autocomplete") || ""}`.toLowerCase();
+    return /password|pass|email|e-mail|username|user|login|mobile|phone|token|secret|otp/.test(label);
+  }
+
+  function variableNameForInput(element) {
+    if (element instanceof HTMLInputElement && element.type === "password") return "password";
+    const label = `${element.name || ""} ${element.id || ""} ${element.placeholder || ""} ${element.getAttribute("autocomplete") || ""}`.toLowerCase();
+    if (/email|e-mail|mobile|phone|login|username|user/.test(label)) return "email";
+    return slugify(element.name || element.id || element.placeholder || element.getAttribute("autocomplete") || "input") || "input";
   }
 
   function normalizeBaseUrl(value) {

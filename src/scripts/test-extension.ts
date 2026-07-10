@@ -90,7 +90,17 @@ const popup = fs.readFileSync(path.join(extensionDir, "popup.html"), "utf8");
 const popupJs = fs.readFileSync(path.join(extensionDir, "popup.js"), "utf8");
 const backgroundJs = fs.readFileSync(path.join(extensionDir, "background.js"), "utf8");
 
-for (const expected of ["Save API", "Record clicks/fills", "/v1/workflows/"]) {
+for (const expected of [
+  "Save API",
+  "Record clicks/fills",
+  "/v1/workflows/",
+  "document.addEventListener(\"input\", captureInput, true)",
+  "element.getAttribute(\"name\")",
+  "Saved. Open",
+  "POST the same URL",
+  "shouldUseVariable",
+  "variableNameForInput"
+]) {
   if (!contentRecorder.includes(expected)) {
     throw new Error(`Extension recorder missing expected text: ${expected}`);
   }

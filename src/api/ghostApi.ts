@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Fastify from "fastify";
 import { z } from "zod";
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { executeWorkflowAction } from "../actions/executeWorkflowAction.js";
 import { executeGetAttendanceAction } from "../actions/getAttendanceAction.js";
 import { config, mockPortalCredentials } from "../config.js";
@@ -553,6 +553,16 @@ export function createGhostApi(): FastifyInstance {
     }
   });
 
+  app.get("/v1/workflows/:workflowId/run", async (request, reply) => {
+    const params = request.params as { workflowId: string };
+    const query = request.query as Record<string, string | undefined>;
+    const variables = Object.fromEntries(
+      Object.entries(query).filter((entry): entry is [string, string] => entry[1] !== undefined)
+    );
+
+    return runWorkflowRequest(params.workflowId, variables, request, reply);
+  });
+
   app.post("/v1/workflows/:workflowId/run", async (request, reply) => {
     const params = request.params as { workflowId: string };
     const parsed = runWorkflowSchema.safeParse(request.body ?? {});
@@ -565,24 +575,7 @@ export function createGhostApi(): FastifyInstance {
       });
     }
 
-    try {
-      const actionResult = await executeWorkflowAction(params.workflowId, parsed.data.variables ?? {}, tenantContext(request));
-
-      return {
-        ok: true,
-        workflowId: actionResult.workflowId,
-        runId: actionResult.runId,
-        result: actionResult.result,
-        stepLog: actionResult.run.stepLog
-      };
-    } catch (error) {
-      request.log.error(error);
-      return reply.code(500).send({
-        ok: false,
-        workflowId: params.workflowId,
-        error: error instanceof Error ? error.message : "Unknown workflow runner error"
-      });
-    }
+    return runWorkflowRequest(params.workflowId, parsed.data.variables ?? {}, request, reply);
   });
 
   app.get("/v1/runs", async (request) => {
@@ -685,6 +678,33 @@ export function createGhostApi(): FastifyInstance {
   });
 
   return app;
+
+  async function runWorkflowRequest(
+    workflowId: string,
+    variables: Record<string, string | number | boolean | null>,
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<unknown> {
+    try {
+      const actionResult = await executeWorkflowAction(workflowId, variables, tenantContext(request));
+
+      return {
+        ok: true,
+        workflowId: actionResult.workflowId,
+        runId: actionResult.runId,
+        result: actionResult.result,
+        stepLog: actionResult.run.stepLog
+      };
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({
+        ok: false,
+        workflowId,
+        error: error instanceof Error ? error.message : "Unknown workflow runner error",
+        hint: "Use GET for a quick browser test with default/query variables, or POST JSON like {\"variables\":{\"email\":\"...\",\"password\":\"...\"}}."
+      });
+    }
+  }
 }
 
 function maskDatabaseUrl(databaseUrl: string | undefined): string | null {
