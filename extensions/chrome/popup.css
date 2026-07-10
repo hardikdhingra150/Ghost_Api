@@ -30,13 +30,14 @@ main {
 }
 
 .ghost {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 44px;
   height: 44px;
   border: 3px solid var(--line);
   border-radius: 16px;
   background: var(--purple);
+  padding: 4px;
+  object-fit: contain;
 }
 
 h1 {

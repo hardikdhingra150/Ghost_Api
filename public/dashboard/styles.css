@@ -427,6 +427,34 @@ dd {
   margin-bottom: 20px;
 }
 
+.extension-install {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.extension-install > div:first-child {
+  display: grid;
+  align-content: center;
+}
+
+.extension-preview {
+  display: grid;
+  place-items: center;
+  min-height: 210px;
+  border: 3px solid var(--line);
+  border-radius: 22px;
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
+}
+
+.extension-preview img {
+  width: min(170px, 76%);
+  height: auto;
+  filter: drop-shadow(6px 6px 0 rgba(8, 8, 8, 0.16));
+}
+
 .onboarding-grid,
 .workflow-cards,
 .deployment-grid,
@@ -759,5 +787,6 @@ td strong { color: var(--ink); }
   .launch-strip { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; flex-direction: column; }
   .version-toolbar { grid-template-columns: 1fr; }
+  .extension-install { grid-template-columns: 1fr; }
   .button { width: 100%; }
 }

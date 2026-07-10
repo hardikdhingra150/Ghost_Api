@@ -14,7 +14,7 @@ if (!html.includes("Build APIs from any website")) {
 }
 
 if (!html.includes("GhostAPI Capture")) {
-  throw new Error("Dashboard HTML did not include the GhostAPI bookmarklet");
+  throw new Error("Dashboard HTML did not include GhostAPI Capture");
 }
 
 if (!html.includes("Start capturing")) {
@@ -41,12 +41,12 @@ if (!html.includes("Deployment and environment")) {
   throw new Error("Dashboard HTML did not include deployment health");
 }
 
-if (!html.includes("Production command center")) {
-  throw new Error("Dashboard HTML did not include setup commands");
+if (!html.includes("Download extension")) {
+  throw new Error("Dashboard HTML did not include one-click extension download");
 }
 
-if (!html.includes("Recorder distribution")) {
-  throw new Error("Dashboard HTML did not include extension distribution");
+if (!html.includes("Recorder status")) {
+  throw new Error("Dashboard HTML did not include extension status");
 }
 
 if (!html.includes("Production API checking")) {
@@ -57,15 +57,11 @@ if (!html.includes("hero-logo")) {
   throw new Error("Dashboard HTML did not include the right-side hero logo");
 }
 
-if (!html.includes("Week 14 database plan")) {
-  throw new Error("Dashboard HTML did not include Week 14 database readiness");
+if (!html.includes("Database readiness")) {
+  throw new Error("Dashboard HTML did not include database readiness");
 }
 
-if (!html.includes("npm run package:extension")) {
-  throw new Error("Dashboard HTML did not include extension packaging command");
-}
-
-for (const forbidden of ["Week 11", "Week 12", "Week 13", "Local prototype"]) {
+for (const forbidden of ["Week 11", "Week 12", "Week 13", "Week 14", "Local prototype", "Bookmarklet fallback", "Copy path"]) {
   if (html.includes(forbidden)) {
     throw new Error(`Dashboard HTML still included public milestone text: ${forbidden}`);
   }
@@ -73,13 +69,7 @@ for (const forbidden of ["Week 11", "Week 12", "Week 13", "Local prototype"]) {
 
 for (const expected of [
   "Public API URL",
-  "extensions/chrome",
-  "npm run test:deployment",
-  "npm run test:extension",
-  "GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com",
-  "GHOSTAPI_DATABASE_DRIVER=postgres",
-  "DATABASE_URL=&lt;Render Postgres connection string&gt;",
-  "https://ghostapi-api.onrender.com/health",
+  "/extension/ghostapi-capture.zip",
   "/v1/database/plan",
   "/v1/workflows"
 ]) {
@@ -91,7 +81,7 @@ for (const expected of [
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
-const bookmarkletResponse = await fetch("http://127.0.0.1:4000/capture/bookmarklet.js");
+const extensionResponse = await fetch("http://127.0.0.1:4000/extension/ghostapi-capture.zip");
 
 if (!cssResponse.ok) {
   throw new Error(`Dashboard CSS returned HTTP ${cssResponse.status}`);
@@ -105,8 +95,12 @@ if (!logoResponse.ok) {
   throw new Error(`Dashboard logo returned HTTP ${logoResponse.status}`);
 }
 
-if (!bookmarkletResponse.ok) {
-  throw new Error(`Bookmarklet script returned HTTP ${bookmarkletResponse.status}`);
+if (!extensionResponse.ok) {
+  throw new Error(`Extension package returned HTTP ${extensionResponse.status}`);
+}
+
+if (extensionResponse.headers.get("content-type") !== "application/zip") {
+  throw new Error("Extension package did not return application/zip");
 }
 
 console.log(
@@ -119,7 +113,7 @@ console.log(
         css: cssResponse.status,
         js: jsResponse.status,
         logo: logoResponse.status,
-        bookmarklet: bookmarkletResponse.status
+        extension: extensionResponse.status
       },
       contains: [
         "GhostAPI Dashboard",
@@ -131,14 +125,12 @@ console.log(
         "Workflow builder",
         "Run history",
         "Deployment and environment",
-        "Production command center",
-        "Recorder distribution",
+        "Download extension",
+        "Recorder status",
         "Production API checking",
-        "Week 14 database plan",
-        "npm run package:extension",
+        "Database readiness",
         "Public API URL",
-        "extensions/chrome",
-        "npm run test:deployment"
+        "/extension/ghostapi-capture.zip"
       ]
     },
     null,

@@ -71,9 +71,6 @@ const els = {
   apiKeyBadge: document.querySelector("#apiKeyBadge"),
   apiKeySummary: document.querySelector("#apiKeySummary"),
   apiExample: document.querySelector("#apiExample"),
-  curlExample: document.querySelector("#curlExample"),
-  envExample: document.querySelector("#envExample"),
-  renderSmokeExample: document.querySelector("#renderSmokeExample"),
   extensionApiOrigin: document.querySelector("#extensionApiOrigin"),
   launchPublicUrl: document.querySelector("#launchPublicUrl"),
   launchRuntime: document.querySelector("#launchRuntime"),
@@ -82,16 +79,7 @@ const els = {
   databasePlanSummary: document.querySelector("#databasePlanSummary"),
   workflowCards: document.querySelector("#workflowCards"),
   deploymentCards: document.querySelector("#deploymentCards"),
-  bookmarkletLink: document.querySelector("#bookmarkletLink"),
-  installBookmarkletButton: document.querySelector("#installBookmarkletButton"),
-  copyBookmarkletButton: document.querySelector("#copyBookmarkletButton"),
-  bookmarkletCode: document.querySelector("#bookmarkletCode"),
-  bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide"),
-  copyExtensionPathButton: document.querySelector("#copyExtensionPathButton"),
-  copyAllCommandsButton: document.querySelector("#copyAllCommandsButton"),
-  copyApiCommandsButton: document.querySelector("#copyApiCommandsButton"),
-  copyEnvCommandsButton: document.querySelector("#copyEnvCommandsButton"),
-  copyRenderSmokeButton: document.querySelector("#copyRenderSmokeButton")
+  downloadExtensionButton: document.querySelector("#downloadExtensionButton")
 };
 
 wireEvents();
@@ -109,20 +97,15 @@ function wireEvents() {
   els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
   els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
   els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
-  els.copyBookmarkletButton.addEventListener("click", () => copyBookmarklet(els.copyBookmarkletButton));
-  els.installBookmarkletButton.addEventListener("click", () => installBookmarklet(els.installBookmarkletButton));
-  els.copyExtensionPathButton.addEventListener("click", () => copyExtensionPath(els.copyExtensionPathButton));
-  els.copyAllCommandsButton.addEventListener("click", () => copyAllCommands(els.copyAllCommandsButton));
-  els.copyApiCommandsButton.addEventListener("click", () => copyTextFromElement(els.curlExample, "Deployed API commands copied.", els.copyApiCommandsButton));
-  els.copyEnvCommandsButton.addEventListener("click", () => copyTextFromElement(els.envExample, "Render environment template copied.", els.copyEnvCommandsButton));
-  els.copyRenderSmokeButton.addEventListener("click", () => copyTextFromElement(els.renderSmokeExample, "Render smoke-test commands copied.", els.copyRenderSmokeButton));
+  els.downloadExtensionButton?.addEventListener("click", () => {
+    setStatus("Extension download started.");
+  });
   document.querySelectorAll(".copy-command").forEach((button) => {
     button.addEventListener("click", () => copyCommand(button.dataset.command, button));
   });
 }
 
 async function boot() {
-  setupBookmarklet();
   await Promise.allSettled([refreshOverview(), loadRuns(), loadWorkflow(), loadWorkflows()]);
 }
 
@@ -155,17 +138,22 @@ async function refreshOverview() {
   if (deployment.status === "fulfilled") {
     renderDeployment(deployment.value, cloud.status === "fulfilled" ? cloud.value : null);
     updateCommandExamples(deployment.value.publicApiUrl || state.publicApiUrl);
+  } else {
+    renderLockedCloudState(deployment.reason);
   }
 
   if (database.status === "fulfilled") {
     renderDatabasePlan(database.value);
+  } else {
+    els.databasePlanBadge.textContent = "Database status locked";
+    els.databasePlanSummary.textContent = "Database readiness requires an API key on this deployment.";
   }
 
   if (apiKeys.status === "fulfilled") {
     renderApiKeys(apiKeys.value);
   } else {
-    els.apiKeyBadge.textContent = "Optional";
-    els.apiKeySummary.textContent = "API key protection is not required for this environment or is not reachable yet.";
+    els.apiKeyBadge.textContent = "Protected";
+    els.apiKeySummary.textContent = "This deployment protects account APIs. Public health and extension download remain available.";
   }
 
   if (me.status === "fulfilled" && me.value.account) {
@@ -197,17 +185,28 @@ function renderDeployment(payload, cloudPayload) {
   ].join("");
 }
 
+function renderLockedCloudState(error) {
+  els.deploymentCards.innerHTML = [
+    miniCard("Cloud API protected", "Account, workflow, and deployment details require an API key on this deployment.", "protected"),
+    miniCard("Public health", "The public /health endpoint still verifies the running Render service.", "configured")
+  ].join("");
+
+  if (error?.message) {
+    setStatus("Cloud details locked: " + error.message, true);
+  }
+}
+
 function renderDatabasePlan(payload) {
   const postgres = payload.postgres || {};
   const isPostgresReady = payload.activeStore === "postgres";
-  els.databasePlanBadge.textContent = isPostgresReady ? "Postgres active" : "Week 14 database plan";
+  els.databasePlanBadge.textContent = isPostgresReady ? "Postgres active" : "Database readiness";
   els.databasePlanSummary.textContent = isPostgresReady
     ? "Cloud persistence is pointed at Postgres. Keep SQLite only as the local fallback."
     : `Active store: ${payload.activeStore || "sqlite"}. Set DATABASE_URL and GHOSTAPI_DATABASE_DRIVER=postgres when ready.`;
   els.deploymentCards.insertAdjacentHTML(
     "afterbegin",
     miniCard(
-      "Week 14 database",
+      "Database readiness",
       `Active store: ${payload.activeStore || "sqlite"}. Postgres URL: ${postgres.connectionStringConfigured ? "configured" : "not configured"}.`,
       isPostgresReady ? "configured" : "planned"
     )
@@ -254,75 +253,12 @@ function renderWorkflowCard(workflow) {
 function updateCommandExamples(baseUrl) {
   const cleanBase = String(baseUrl || window.location.origin).replace(/\/$/, "");
   els.apiExample.textContent = `curl \\\n  ${cleanBase}/v1/workflows`;
-  els.curlExample.textContent = `curl \\\n  ${cleanBase}/health\ncurl \\\n  ${cleanBase}/v1/workflows`;
-  els.renderSmokeExample.textContent = `curl \\\n  ${cleanBase}/health\ncurl \\\n  ${cleanBase}/v1/deployment/plan\ncurl \\\n  ${cleanBase}/v1/workflows`;
   els.extensionApiOrigin.textContent = cleanBase;
-  els.envExample.textContent = [
-    "GHOSTAPI_DEPLOYMENT_PROVIDER=render",
-    "GHOSTAPI_MODE=cloud",
-    `GHOSTAPI_PUBLIC_API_URL=${cleanBase}`,
-    "GHOSTAPI_REQUIRE_API_KEY=false",
-    "HOST=0.0.0.0",
-    "PORT=4000",
-    "DATABASE_URL=<Render Postgres connection string>",
-    "GHOSTAPI_DATABASE_DRIVER=postgres"
-  ].join("\n");
-}
-
-function setupBookmarklet() {
-  const bookmarklet =
-    "javascript:(()=>{const s=document.createElement('script');s.src='" +
-    window.location.origin +
-    "/capture/bookmarklet.js?ts='+Date.now();document.documentElement.appendChild(s)})()";
-  els.bookmarkletLink.href = bookmarklet;
-  els.bookmarkletCode.value = bookmarklet;
-}
-
-async function copyBookmarklet(button) {
-  await copyToClipboard(els.bookmarkletCode.value, button);
-  els.bookmarkInstallGuide.hidden = false;
-  setStatus("GhostAPI bookmarklet copied. Save it as a browser bookmark.");
-}
-
-async function installBookmarklet(button) {
-  await copyToClipboard(els.bookmarkletCode.value, button);
-  els.bookmarkInstallGuide.hidden = false;
-  setStatus("Bookmark code copied. Save it as a browser bookmark.");
-}
-
-async function copyExtensionPath(button) {
-  await copyToClipboard("extensions/chrome", button);
-  setStatus("Extension folder copied.");
 }
 
 async function copyCommand(command, button) {
   await copyToClipboard(command, button);
   setStatus("Copied command.");
-}
-
-async function copyTextFromElement(element, message, button) {
-  await copyToClipboard(element.textContent.trim(), button);
-  setStatus(message);
-}
-
-async function copyAllCommands(button) {
-  const commands = [
-    "npm install",
-    "npx playwright install chromium",
-    "npm start",
-    "npm run check",
-    "npm run test:dashboard",
-    "npm run test:cloud",
-    "npm run test:deployment",
-    "npm run test:extension",
-    "npm run package:extension",
-    "",
-    els.curlExample.textContent.trim(),
-    "",
-    els.envExample.textContent.trim()
-  ].join("\n");
-  await copyToClipboard(commands, button);
-  setStatus("Setup and verification commands copied.");
 }
 
 async function copyToClipboard(text, button) {
@@ -416,6 +352,8 @@ async function loadRuns() {
     }
   } catch (error) {
     els.runs.innerHTML = `<p class="failed">Could not load runs: ${escapeHtml(error.message)}</p>`;
+    els.runCount.textContent = "protected";
+    els.runsMetric.textContent = "-";
   }
 }
 
@@ -427,14 +365,20 @@ function changeRunPage(direction) {
 }
 
 async function loadWorkflow() {
-  const payload = await api.getWorkflow();
-  const workflow = payload.workflow || payload;
-  state.workflowVersion = workflow.version;
-  state.workflowStepCount = Array.isArray(workflow.steps) ? workflow.steps.length : 0;
-  els.stepsMetric.textContent = String(state.workflowStepCount);
-  els.workflowJson.value = JSON.stringify(workflow, null, 2);
-  setWorkflowStatus("Workflow loaded.");
-  await loadWorkflowVersions();
+  try {
+    const payload = await api.getWorkflow();
+    const workflow = payload.workflow || payload;
+    state.workflowVersion = workflow.version;
+    state.workflowStepCount = Array.isArray(workflow.steps) ? workflow.steps.length : 0;
+    els.stepsMetric.textContent = String(state.workflowStepCount);
+    els.workflowJson.value = JSON.stringify(workflow, null, 2);
+    setWorkflowStatus("Workflow loaded.");
+    await loadWorkflowVersions();
+  } catch (error) {
+    els.stepsMetric.textContent = "-";
+    els.workflowJson.value = "Workflow details are protected on this deployment.";
+    setWorkflowStatus("Workflow details require API access.", true);
+  }
 }
 
 async function saveWorkflow() {
@@ -456,14 +400,18 @@ async function saveWorkflow() {
 }
 
 async function loadWorkflowVersions() {
-  const payload = await api.getWorkflowVersions();
-  state.workflowVersions = payload.versions || [];
-  els.workflowVersionSelect.innerHTML = state.workflowVersions
-    .map((item) => `<option value="${escapeHtml(String(item.version))}">v${escapeHtml(String(item.version))} - ${new Date(item.createdAt).toLocaleString()}</option>`)
-    .join("");
+  try {
+    const payload = await api.getWorkflowVersions();
+    state.workflowVersions = payload.versions || [];
+    els.workflowVersionSelect.innerHTML = state.workflowVersions
+      .map((item) => `<option value="${escapeHtml(String(item.version))}">v${escapeHtml(String(item.version))} - ${new Date(item.createdAt).toLocaleString()}</option>`)
+      .join("");
 
-  if (state.workflowVersion) {
-    els.workflowVersionSelect.value = String(state.workflowVersion);
+    if (state.workflowVersion) {
+      els.workflowVersionSelect.value = String(state.workflowVersion);
+    }
+  } catch {
+    els.workflowVersionSelect.innerHTML = '<option value="">Protected</option>';
   }
 }
 

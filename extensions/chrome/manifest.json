@@ -5,9 +5,21 @@
   "version": "0.1.0",
   "description": "Record browser actions on any website and save them as GhostAPI workflows.",
   "homepage_url": "https://github.com/hardikdhingra150/Ghost_Api",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
     "default_title": "GhostAPI Capture",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   },
   "background": {
     "service_worker": "background.js"
@@ -16,6 +28,7 @@
   "host_permissions": [
     "http://127.0.0.1:4000/*",
     "http://localhost:4000/*",
+    "https://ghostapi-api.onrender.com/*",
     "https://api.ghostapi.app/*",
     "https://*.ghostapi.app/*"
   ]

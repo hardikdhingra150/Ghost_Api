@@ -99,6 +99,13 @@ export function createGhostApi(): FastifyInstance {
     return sendPublicFile(reply, "capture/bookmarklet.js");
   });
 
+  app.get("/extension/ghostapi-capture.zip", async (_request, reply) => {
+    const zipBuffer = createExtensionZip();
+
+    reply.header("content-disposition", 'attachment; filename="ghostapi-capture.zip"');
+    return reply.type("application/zip").send(zipBuffer);
+  });
+
   app.get("/health", async () => {
     return {
       ok: true,
@@ -624,4 +631,110 @@ function maskDatabaseUrl(databaseUrl: string | undefined): string | null {
   } catch {
     return "<configured>";
   }
+}
+
+function createExtensionZip(): Buffer {
+  const extensionDir = path.resolve(process.cwd(), "extensions", "chrome");
+  const files = listExtensionFiles(extensionDir);
+  const localFileParts: Buffer[] = [];
+  const centralDirectoryParts: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const absolutePath = path.join(extensionDir, file);
+    const data = fs.readFileSync(absolutePath);
+    const name = Buffer.from(file.replaceAll(path.sep, "/"));
+    const crc = crc32(data);
+    const localHeader = Buffer.alloc(30);
+
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(data.length, 18);
+    localHeader.writeUInt32LE(data.length, 22);
+    localHeader.writeUInt16LE(name.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+
+    localFileParts.push(localHeader, name, data);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(data.length, 20);
+    centralHeader.writeUInt32LE(data.length, 24);
+    centralHeader.writeUInt16LE(name.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralDirectoryParts.push(centralHeader, name);
+
+    offset += localHeader.length + name.length + data.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralDirectoryParts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(offset, 16);
+  end.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localFileParts, centralDirectory, end]);
+}
+
+function listExtensionFiles(extensionDir: string): string[] {
+  const files: string[] = [];
+
+  function visit(relativeDir: string): void {
+    const absoluteDir = path.join(extensionDir, relativeDir);
+
+    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
+      const relativePath = path.join(relativeDir, entry.name);
+
+      if (entry.isDirectory()) {
+        visit(relativePath);
+      } else if (entry.isFile()) {
+        files.push(relativePath);
+      }
+    }
+  }
+
+  visit("");
+  return files.sort();
+}
+
+const crcTable = new Uint32Array(256).map((_value, index) => {
+  let crc = index;
+
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
+
+  return crc >>> 0;
+});
+
+function crc32(data: Buffer): number {
+  let crc = 0xffffffff;
+
+  for (const byte of data) {
+    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
 }

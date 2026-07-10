@@ -9,6 +9,8 @@ const els = {
   endpointPreview: document.querySelector("#endpointPreview")
 };
 
+const CLOUD_BASE_URL = "https://ghostapi-api.onrender.com";
+
 boot();
 
 async function boot() {
@@ -19,7 +21,7 @@ async function boot() {
   els.baseUrl.addEventListener("change", saveBaseUrl);
   els.baseUrl.addEventListener("input", updateEndpointPreview);
   els.useLocalServer.addEventListener("click", () => setServer("http://127.0.0.1:4000"));
-  els.useCloudServer.addEventListener("click", () => setServer("https://api.ghostapi.app"));
+  els.useCloudServer.addEventListener("click", () => setServer(CLOUD_BASE_URL));
   els.checkServer.addEventListener("click", checkServer);
   els.startRecorder.addEventListener("click", startRecorder);
   els.openDashboard.addEventListener("click", openDashboard);

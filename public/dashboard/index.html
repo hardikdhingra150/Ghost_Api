@@ -17,7 +17,7 @@
         <a href="#start">Start</a>
         <a href="#workflows">Workflows</a>
         <a href="#runs">Runs</a>
-        <a href="/health" target="_blank" rel="noreferrer">Health</a>
+        <a href="#cloud">Cloud</a>
       </div>
     </nav>
 
@@ -105,7 +105,7 @@
       <article>
         <span class="status-dot"></span>
         <div>
-          <strong id="databasePlanBadge">Week 14 database plan</strong>
+          <strong id="databasePlanBadge">Database readiness</strong>
           <p id="databasePlanSummary">Checking SQLite/Postgres readiness without exposing secrets.</p>
         </div>
       </article>
@@ -115,33 +115,23 @@
       <section id="start" class="panel span-2">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Onboarding</p>
-            <h2>Start capturing</h2>
+            <p class="eyebrow">Extension</p>
+            <h2>Start capturing websites</h2>
           </div>
-          <span class="badge">Recommended path</span>
+          <span class="badge">Production path</span>
         </div>
-        <div class="onboarding-grid">
-          <article class="step-card">
-            <span class="step-number">1</span>
-            <h3>Install the recorder</h3>
-            <p>Load the Chrome extension locally, then pin GhostAPI Capture in your browser toolbar.</p>
-            <div class="inline-action">
-              <code>extensions/chrome</code>
-              <button id="copyExtensionPathButton" class="button secondary">Copy path</button>
+        <div class="extension-install">
+          <div>
+            <h3>GhostAPI Capture</h3>
+            <p>Install the recorder, open any website, capture the workflow, and turn it into a callable API.</p>
+            <div class="button-row">
+              <a class="button primary" id="downloadExtensionButton" href="/extension/ghostapi-capture.zip" download>Download extension</a>
+              <button id="heroRunButton" class="button secondary">Run demo workflow</button>
             </div>
-          </article>
-          <article class="step-card">
-            <span class="step-number">2</span>
-            <h3>Capture a website task</h3>
-            <p>Open a portal, dashboard, or search page. Record the clicks, inputs, and extraction you want GhostAPI to repeat.</p>
-            <a id="bookmarkletLink" class="button secondary" href="#">Bookmarklet fallback</a>
-          </article>
-          <article class="step-card">
-            <span class="step-number">3</span>
-            <h3>Run it as an API</h3>
-            <p>Save the workflow, call the endpoint, and inspect results, screenshots, and step logs from this dashboard.</p>
-            <button id="heroRunButton" class="button primary">Run demo workflow</button>
-          </article>
+          </div>
+          <div class="extension-preview" aria-hidden="true">
+            <img src="/assets/ghostapi-logo.svg" alt="" />
+          </div>
         </div>
       </section>
 
@@ -149,17 +139,11 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Chrome extension</p>
-            <h2>Recorder distribution</h2>
+            <h2>Recorder status</h2>
           </div>
-          <span class="badge">Extension first</span>
+          <span class="badge">Extension ready</span>
         </div>
-        <p>The extension is the production capture path. Load it locally for testing, then package the same build for wider distribution.</p>
-        <ol class="setup-list">
-          <li>Open <code>chrome://extensions</code>.</li>
-          <li>Enable <code>Developer mode</code>.</li>
-          <li>Choose <code>Load unpacked</code>.</li>
-          <li>Select <code>extensions/chrome</code>.</li>
-        </ol>
+        <p>Download the recorder package from this deployment. Chrome only allows true one-click install after the extension is published on the Chrome Web Store.</p>
         <div class="mini-card">
           <div class="row space">
             <h3>API origin</h3>
@@ -167,10 +151,7 @@
           </div>
           <code id="extensionApiOrigin">https://ghostapi-api.onrender.com</code>
         </div>
-        <div class="button-row">
-          <button class="button secondary copy-command" data-command="extensions/chrome">Copy extension path</button>
-          <button class="button secondary copy-command" data-command="npm run package:extension">Copy package command</button>
-        </div>
+        <a class="button primary" href="/extension/ghostapi-capture.zip" download>Download extension</a>
       </section>
 
       <section class="panel">
@@ -271,7 +252,7 @@
         </div>
       </section>
 
-      <section class="panel span-2">
+      <section id="cloud" class="panel span-2">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Cloud health</p>
@@ -283,88 +264,6 @@
           </div>
         </div>
         <div id="deploymentCards" class="deployment-grid"></div>
-      </section>
-
-      <section class="panel span-2">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Commands</p>
-            <h2>Production command center</h2>
-          </div>
-          <button class="button secondary" id="copyAllCommandsButton">Copy commands</button>
-        </div>
-        <p class="section-copy">Everything a new operator needs to run locally, verify the app, connect the deployed API, and package the recorder.</p>
-        <div class="command-grid command-grid-wide">
-          <article>
-            <div class="row space">
-              <h3>Local setup</h3>
-              <button class="button secondary copy-command" data-command="npm install&#10;npx playwright install chromium&#10;npm start">Copy</button>
-            </div>
-            <pre><code>npm install
-npx playwright install chromium
-npm start</code></pre>
-          </article>
-          <article>
-            <div class="row space">
-              <h3>Verify before deploy</h3>
-              <button class="button secondary copy-command" data-command="npm run check&#10;npm run test:dashboard&#10;npm run test:cloud&#10;npm run test:deployment&#10;npm run test:extension">Copy</button>
-            </div>
-            <pre><code>npm run check
-npm run test:dashboard
-npm run test:cloud
-npm run test:deployment
-npm run test:extension</code></pre>
-          </article>
-          <article>
-            <div class="row space">
-              <h3>Call deployed API</h3>
-              <button id="copyApiCommandsButton" class="button secondary">Copy</button>
-            </div>
-            <pre><code id="curlExample">curl \
-  https://ghostapi-api.onrender.com/health
-curl \
-  https://ghostapi-api.onrender.com/v1/workflows</code></pre>
-          </article>
-          <article>
-            <div class="row space">
-              <h3>Render environment</h3>
-              <button id="copyEnvCommandsButton" class="button secondary">Copy</button>
-            </div>
-            <pre><code id="envExample">GHOSTAPI_DEPLOYMENT_PROVIDER=render
-GHOSTAPI_MODE=cloud
-GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com
-GHOSTAPI_REQUIRE_API_KEY=false
-HOST=0.0.0.0
-PORT=4000
-DATABASE_URL=&lt;Render Postgres connection string&gt;
-GHOSTAPI_DATABASE_DRIVER=postgres</code></pre>
-          </article>
-          <article>
-            <div class="row space">
-              <h3>Extension release</h3>
-              <button class="button secondary copy-command" data-command="npm run test:extension&#10;npm run package:extension">Copy</button>
-            </div>
-            <pre><code>npm run test:extension
-npm run package:extension
-extensions/dist/ghostapi-capture.zip</code></pre>
-          </article>
-          <article>
-            <div class="row space">
-              <h3>Smoke test Render</h3>
-              <button id="copyRenderSmokeButton" class="button secondary">Copy</button>
-            </div>
-            <pre><code id="renderSmokeExample">curl \
-  https://ghostapi-api.onrender.com/health
-curl \
-  https://ghostapi-api.onrender.com/v1/deployment/plan
-curl \
-  https://ghostapi-api.onrender.com/v1/workflows</code></pre>
-          </article>
-        </div>
-        <textarea id="bookmarkletCode" class="sr-only" readonly></textarea>
-        <button id="copyBookmarkletButton" class="sr-only">Copy bookmarklet</button>
-        <button id="installBookmarkletButton" class="sr-only">Install bookmark</button>
-        <div id="bookmarkInstallGuide" hidden></div>
       </section>
     </main>
   </div>
