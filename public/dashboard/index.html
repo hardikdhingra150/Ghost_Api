@@ -30,6 +30,11 @@
           <a class="button primary" href="#start">Start capturing</a>
           <button id="heroRefreshButton" class="button secondary">Refresh status</button>
         </div>
+        <div class="hero-proof">
+          <span>Hosted on Render</span>
+          <span>Chrome extension ready</span>
+          <span>Cloud mode aware</span>
+        </div>
       </div>
       <div class="api-card">
         <div class="api-card-header">
@@ -72,6 +77,30 @@
       </article>
     </section>
 
+    <section class="launch-strip" aria-label="Production launch status">
+      <article>
+        <span class="status-dot"></span>
+        <div>
+          <strong id="deploymentHealthBadge">Production API checking</strong>
+          <p>Render should serve the dashboard, workflow APIs, health checks, and recorder assets over HTTPS.</p>
+        </div>
+      </article>
+      <article>
+        <span class="status-dot"></span>
+        <div>
+          <strong id="launchPublicUrl">https://ghostapi-api.onrender.com</strong>
+          <p>Use this as the browser extension API origin and public customer-facing endpoint.</p>
+        </div>
+      </article>
+      <article>
+        <span class="status-dot"></span>
+        <div>
+          <strong id="launchRuntime">Cloud runtime</strong>
+          <p>Configured for Render now, with Postgres migration and worker queues ready to become the next layer.</p>
+        </div>
+      </article>
+    </section>
+
     <main class="dashboard-grid">
       <section id="start" class="panel span-2">
         <div class="section-heading">
@@ -110,16 +139,28 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Chrome extension</p>
-            <h2>Recorder setup</h2>
+            <h2>Recorder distribution</h2>
           </div>
+          <span class="badge">Extension first</span>
         </div>
+        <p>The extension is the production capture path. Load it locally for testing, then package the same build for wider distribution.</p>
         <ol class="setup-list">
           <li>Open <code>chrome://extensions</code>.</li>
           <li>Enable <code>Developer mode</code>.</li>
           <li>Choose <code>Load unpacked</code>.</li>
           <li>Select <code>extensions/chrome</code>.</li>
         </ol>
-        <button class="button secondary copy-command" data-command="npm run package:extension">Copy package command</button>
+        <div class="mini-card">
+          <div class="row space">
+            <h3>API origin</h3>
+            <span class="badge">Render</span>
+          </div>
+          <code id="extensionApiOrigin">https://ghostapi-api.onrender.com</code>
+        </div>
+        <div class="button-row">
+          <button class="button secondary copy-command" data-command="extensions/chrome">Copy extension path</button>
+          <button class="button secondary copy-command" data-command="npm run package:extension">Copy package command</button>
+        </div>
       </section>
 
       <section class="panel">
@@ -132,6 +173,16 @@
         </div>
         <p id="apiKeySummary">Loading API key configuration...</p>
         <pre><code id="apiExample">curl /v1/workflows</code></pre>
+        <div class="security-list">
+          <div>
+            <strong>Testing</strong>
+            <span><code>GHOSTAPI_REQUIRE_API_KEY=false</code></span>
+          </div>
+          <div>
+            <strong>Production</strong>
+            <span><code>GHOSTAPI_REQUIRE_API_KEY=true</code></span>
+          </div>
+        </div>
       </section>
 
       <section id="workflows" class="panel span-2">
@@ -225,28 +276,71 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Commands</p>
-            <h2>Local and deployed use</h2>
+            <h2>Production command center</h2>
           </div>
           <button class="button secondary" id="copyAllCommandsButton">Copy commands</button>
         </div>
-        <div class="command-grid">
+        <p class="section-copy">Everything a new operator needs to run locally, verify the app, connect the deployed API, and package the recorder.</p>
+        <div class="command-grid command-grid-wide">
           <article>
-            <h3>Local setup</h3>
+            <div class="row space">
+              <h3>Local setup</h3>
+              <button class="button secondary copy-command" data-command="npm install&#10;npx playwright install chromium&#10;npm start">Copy</button>
+            </div>
             <pre><code>npm install
 npx playwright install chromium
 npm start</code></pre>
           </article>
           <article>
-            <h3>Verify before deploy</h3>
+            <div class="row space">
+              <h3>Verify before deploy</h3>
+              <button class="button secondary copy-command" data-command="npm run check&#10;npm run test:dashboard&#10;npm run test:cloud&#10;npm run test:deployment&#10;npm run test:extension">Copy</button>
+            </div>
             <pre><code>npm run check
 npm run test:dashboard
 npm run test:cloud
-npm run test:deployment</code></pre>
+npm run test:deployment
+npm run test:extension</code></pre>
           </article>
           <article>
-            <h3>Call the API</h3>
+            <div class="row space">
+              <h3>Call deployed API</h3>
+              <button id="copyApiCommandsButton" class="button secondary">Copy</button>
+            </div>
             <pre><code id="curlExample">curl /health
 curl /v1/workflows</code></pre>
+          </article>
+          <article>
+            <div class="row space">
+              <h3>Render environment</h3>
+              <button id="copyEnvCommandsButton" class="button secondary">Copy</button>
+            </div>
+            <pre><code id="envExample">GHOSTAPI_DEPLOYMENT_PROVIDER=render
+GHOSTAPI_MODE=cloud
+GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com
+GHOSTAPI_REQUIRE_API_KEY=false
+HOST=0.0.0.0
+PORT=4000
+DATABASE_URL=&lt;Render Postgres connection string&gt;
+GHOSTAPI_DATABASE_DRIVER=postgres</code></pre>
+          </article>
+          <article>
+            <div class="row space">
+              <h3>Extension release</h3>
+              <button class="button secondary copy-command" data-command="npm run test:extension&#10;npm run package:extension">Copy</button>
+            </div>
+            <pre><code>npm run test:extension
+npm run package:extension
+extensions/dist/ghostapi-capture.zip</code></pre>
+          </article>
+          <article>
+            <div class="row space">
+              <h3>Smoke test Render</h3>
+              <button id="copyRenderSmokeButton" class="button secondary">Copy</button>
+            </div>
+            <pre><code id="renderSmokeExample">curl https://ghostapi-api.onrender.com/health
+curl https://ghostapi-api.onrender.com/v1/deployment/plan
+curl https://ghostapi-api.onrender.com/v1/workflows</code></pre>
           </article>
         </div>
         <textarea id="bookmarkletCode" class="sr-only" readonly></textarea>

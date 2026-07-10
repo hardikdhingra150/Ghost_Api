@@ -71,6 +71,12 @@ const els = {
   apiKeySummary: document.querySelector("#apiKeySummary"),
   apiExample: document.querySelector("#apiExample"),
   curlExample: document.querySelector("#curlExample"),
+  envExample: document.querySelector("#envExample"),
+  renderSmokeExample: document.querySelector("#renderSmokeExample"),
+  extensionApiOrigin: document.querySelector("#extensionApiOrigin"),
+  launchPublicUrl: document.querySelector("#launchPublicUrl"),
+  launchRuntime: document.querySelector("#launchRuntime"),
+  deploymentHealthBadge: document.querySelector("#deploymentHealthBadge"),
   workflowCards: document.querySelector("#workflowCards"),
   deploymentCards: document.querySelector("#deploymentCards"),
   bookmarkletLink: document.querySelector("#bookmarkletLink"),
@@ -79,7 +85,10 @@ const els = {
   bookmarkletCode: document.querySelector("#bookmarkletCode"),
   bookmarkInstallGuide: document.querySelector("#bookmarkInstallGuide"),
   copyExtensionPathButton: document.querySelector("#copyExtensionPathButton"),
-  copyAllCommandsButton: document.querySelector("#copyAllCommandsButton")
+  copyAllCommandsButton: document.querySelector("#copyAllCommandsButton"),
+  copyApiCommandsButton: document.querySelector("#copyApiCommandsButton"),
+  copyEnvCommandsButton: document.querySelector("#copyEnvCommandsButton"),
+  copyRenderSmokeButton: document.querySelector("#copyRenderSmokeButton")
 };
 
 wireEvents();
@@ -101,6 +110,9 @@ function wireEvents() {
   els.installBookmarkletButton.addEventListener("click", installBookmarklet);
   els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
   els.copyAllCommandsButton.addEventListener("click", copyAllCommands);
+  els.copyApiCommandsButton.addEventListener("click", () => copyTextFromElement(els.curlExample, "Deployed API commands copied."));
+  els.copyEnvCommandsButton.addEventListener("click", () => copyTextFromElement(els.envExample, "Render environment template copied."));
+  els.copyRenderSmokeButton.addEventListener("click", () => copyTextFromElement(els.renderSmokeExample, "Render smoke-test commands copied."));
   document.querySelectorAll(".copy-command").forEach((button) => {
     button.addEventListener("click", () => copyCommand(button.dataset.command));
   });
@@ -128,8 +140,12 @@ async function refreshOverview() {
     els.publicApiUrl.textContent = state.publicApiUrl;
     els.modeMetric.textContent = value.mode || "local";
     els.providerMetric.textContent = value.deploymentProvider || "local";
+    els.launchPublicUrl.textContent = state.publicApiUrl;
+    els.launchRuntime.textContent = `${value.mode || "local"} on ${value.deploymentProvider || "local"}`;
+    els.deploymentHealthBadge.textContent = value.ok ? "Production API online" : "Production API needs attention";
   } else {
     els.serviceStatus.textContent = "Health check unavailable";
+    els.deploymentHealthBadge.textContent = "Health check unavailable";
   }
 
   if (deployment.status === "fulfilled") {
@@ -214,6 +230,18 @@ function updateCommandExamples(baseUrl) {
   const cleanBase = String(baseUrl || window.location.origin).replace(/\/$/, "");
   els.apiExample.textContent = `curl ${cleanBase}/v1/workflows`;
   els.curlExample.textContent = `curl ${cleanBase}/health\ncurl ${cleanBase}/v1/workflows`;
+  els.renderSmokeExample.textContent = `curl ${cleanBase}/health\ncurl ${cleanBase}/v1/deployment/plan\ncurl ${cleanBase}/v1/workflows`;
+  els.extensionApiOrigin.textContent = cleanBase;
+  els.envExample.textContent = [
+    "GHOSTAPI_DEPLOYMENT_PROVIDER=render",
+    "GHOSTAPI_MODE=cloud",
+    `GHOSTAPI_PUBLIC_API_URL=${cleanBase}`,
+    "GHOSTAPI_REQUIRE_API_KEY=false",
+    "HOST=0.0.0.0",
+    "PORT=4000",
+    "DATABASE_URL=<Render Postgres connection string>",
+    "GHOSTAPI_DATABASE_DRIVER=postgres"
+  ].join("\n");
 }
 
 function setupBookmarklet() {
@@ -247,6 +275,11 @@ async function copyCommand(command) {
   setStatus("Copied command.");
 }
 
+async function copyTextFromElement(element, message) {
+  await navigator.clipboard.writeText(element.textContent.trim());
+  setStatus(message);
+}
+
 async function copyAllCommands() {
   const commands = [
     "npm install",
@@ -256,7 +289,12 @@ async function copyAllCommands() {
     "npm run test:dashboard",
     "npm run test:cloud",
     "npm run test:deployment",
-    "npm run package:extension"
+    "npm run test:extension",
+    "npm run package:extension",
+    "",
+    els.curlExample.textContent.trim(),
+    "",
+    els.envExample.textContent.trim()
   ].join("\n");
   await navigator.clipboard.writeText(commands);
   setStatus("Setup and verification commands copied.");

@@ -41,8 +41,16 @@ if (!html.includes("Deployment and environment")) {
   throw new Error("Dashboard HTML did not include deployment health");
 }
 
-if (!html.includes("Local and deployed use")) {
+if (!html.includes("Production command center")) {
   throw new Error("Dashboard HTML did not include setup commands");
+}
+
+if (!html.includes("Recorder distribution")) {
+  throw new Error("Dashboard HTML did not include extension distribution");
+}
+
+if (!html.includes("Production API checking")) {
+  throw new Error("Dashboard HTML did not include launch status strip");
 }
 
 if (!html.includes("npm run package:extension")) {
@@ -55,7 +63,16 @@ for (const forbidden of ["Week 11", "Week 12", "Week 13", "Local prototype"]) {
   }
 }
 
-for (const expected of ["Public API URL", "extensions/chrome", "npm run test:deployment", "/v1/workflows"]) {
+for (const expected of [
+  "Public API URL",
+  "extensions/chrome",
+  "npm run test:deployment",
+  "npm run test:extension",
+  "GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com",
+  "DATABASE_URL=&lt;Render Postgres connection string&gt;",
+  "curl https://ghostapi-api.onrender.com/health",
+  "/v1/workflows"
+]) {
   if (!html.includes(expected)) {
     throw new Error(`Dashboard HTML did not include production dashboard text: ${expected}`);
   }
@@ -104,7 +121,9 @@ console.log(
         "Workflow builder",
         "Run history",
         "Deployment and environment",
-        "Local and deployed use",
+        "Production command center",
+        "Recorder distribution",
+        "Production API checking",
         "npm run package:extension",
         "Public API URL",
         "extensions/chrome",
