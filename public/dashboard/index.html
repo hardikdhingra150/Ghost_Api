@@ -307,8 +307,10 @@ npm run test:extension</code></pre>
               <h3>Call deployed API</h3>
               <button id="copyApiCommandsButton" class="button secondary">Copy</button>
             </div>
-            <pre><code id="curlExample">curl /health
-curl /v1/workflows</code></pre>
+            <pre><code id="curlExample">curl \
+  https://ghostapi-api.onrender.com/health
+curl \
+  https://ghostapi-api.onrender.com/v1/workflows</code></pre>
           </article>
           <article>
             <div class="row space">
@@ -338,9 +340,12 @@ extensions/dist/ghostapi-capture.zip</code></pre>
               <h3>Smoke test Render</h3>
               <button id="copyRenderSmokeButton" class="button secondary">Copy</button>
             </div>
-            <pre><code id="renderSmokeExample">curl https://ghostapi-api.onrender.com/health
-curl https://ghostapi-api.onrender.com/v1/deployment/plan
-curl https://ghostapi-api.onrender.com/v1/workflows</code></pre>
+            <pre><code id="renderSmokeExample">curl \
+  https://ghostapi-api.onrender.com/health
+curl \
+  https://ghostapi-api.onrender.com/v1/deployment/plan
+curl \
+  https://ghostapi-api.onrender.com/v1/workflows</code></pre>
           </article>
         </div>
         <textarea id="bookmarkletCode" class="sr-only" readonly></textarea>

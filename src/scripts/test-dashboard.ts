@@ -70,7 +70,7 @@ for (const expected of [
   "npm run test:extension",
   "GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com",
   "DATABASE_URL=&lt;Render Postgres connection string&gt;",
-  "curl https://ghostapi-api.onrender.com/health",
+  "https://ghostapi-api.onrender.com/health",
   "/v1/workflows"
 ]) {
   if (!html.includes(expected)) {

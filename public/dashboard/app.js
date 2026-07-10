@@ -228,9 +228,9 @@ function renderWorkflowCard(workflow) {
 
 function updateCommandExamples(baseUrl) {
   const cleanBase = String(baseUrl || window.location.origin).replace(/\/$/, "");
-  els.apiExample.textContent = `curl ${cleanBase}/v1/workflows`;
-  els.curlExample.textContent = `curl ${cleanBase}/health\ncurl ${cleanBase}/v1/workflows`;
-  els.renderSmokeExample.textContent = `curl ${cleanBase}/health\ncurl ${cleanBase}/v1/deployment/plan\ncurl ${cleanBase}/v1/workflows`;
+  els.apiExample.textContent = `curl \\\n  ${cleanBase}/v1/workflows`;
+  els.curlExample.textContent = `curl \\\n  ${cleanBase}/health\ncurl \\\n  ${cleanBase}/v1/workflows`;
+  els.renderSmokeExample.textContent = `curl \\\n  ${cleanBase}/health\ncurl \\\n  ${cleanBase}/v1/deployment/plan\ncurl \\\n  ${cleanBase}/v1/workflows`;
   els.extensionApiOrigin.textContent = cleanBase;
   els.envExample.textContent = [
     "GHOSTAPI_DEPLOYMENT_PROVIDER=render",
