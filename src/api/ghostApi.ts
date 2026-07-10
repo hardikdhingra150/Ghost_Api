@@ -41,6 +41,12 @@ const createApiKeySchema = z.object({
   name: z.string().min(1).max(80)
 });
 
+const publicV1Routes = new Set([
+  "/v1/cloud/plan",
+  "/v1/deployment/plan",
+  "/v1/database/plan"
+]);
+
 export function createGhostApi(): FastifyInstance {
   const app = Fastify({ logger: true });
   ensureDefaultAccount();
@@ -60,7 +66,9 @@ export function createGhostApi(): FastifyInstance {
   });
 
   app.addHook("preHandler", async (request, reply) => {
-    if (!config.security.requireApiKey || !request.url.startsWith("/v1/")) {
+    const routePath = request.url.split("?")[0] ?? request.url;
+
+    if (!config.security.requireApiKey || !request.url.startsWith("/v1/") || publicV1Routes.has(routePath)) {
       return;
     }
 

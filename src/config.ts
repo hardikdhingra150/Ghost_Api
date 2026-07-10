@@ -48,7 +48,7 @@ export const config = {
   },
   security: {
     apiKey: process.env.GHOSTAPI_API_KEY,
-    requireApiKey: process.env.GHOSTAPI_REQUIRE_API_KEY === "true" || Boolean(process.env.GHOSTAPI_API_KEY)
+    requireApiKey: process.env.GHOSTAPI_REQUIRE_API_KEY === "true"
   }
 };
 
