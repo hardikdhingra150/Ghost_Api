@@ -8,7 +8,7 @@
   }
 
   const state = {
-    baseUrl: "http://127.0.0.1:4000",
+    baseUrl: "https://ghostapi-api.onrender.com",
     mode: "record",
     workflowId: slugify(location.hostname.replace(/^www\./, "") + "-api"),
     workflowName: titleCase(location.hostname.replace(/^www\./, "") + " API"),
@@ -306,7 +306,7 @@
   }
 
   function normalizeBaseUrl(value) {
-    return String(value || "http://127.0.0.1:4000").replace(/\/+$/, "");
+    return String(value || "https://ghostapi-api.onrender.com").replace(/\/+$/, "");
   }
 
   function slugify(value) {

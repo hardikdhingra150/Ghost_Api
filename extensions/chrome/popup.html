@@ -18,29 +18,29 @@
 
     <label>
       GhostAPI server
-      <input id="baseUrl" value="http://127.0.0.1:4000" />
+      <input id="baseUrl" value="https://ghostapi-api.onrender.com" />
     </label>
 
     <div class="quick-switch">
-      <button id="useLocalServer" class="secondary">Use local</button>
-      <button id="useCloudServer" class="secondary">Use cloud</button>
+      <button id="useCloudServer">Use cloud</button>
+      <button id="useLocalServer" class="secondary">Use local dev</button>
     </div>
 
     <button id="checkServer" class="secondary">Check server connection</button>
     <button id="startRecorder">Open recorder on this page</button>
     <button id="openDashboard" class="secondary">Open dashboard</button>
 
-    <div id="status" class="status">Start GhostAPI locally, then open the recorder.</div>
+    <div id="status" class="status">Cloud mode is ready. No local command is needed.</div>
 
     <section class="endpoint-card">
       <strong>Your APIs will run here</strong>
-      <code id="endpointPreview">http://127.0.0.1:4000/v1/workflows/YOUR_API/run</code>
+      <code id="endpointPreview">https://ghostapi-api.onrender.com/v1/workflows/YOUR_API/run</code>
     </section>
 
     <section>
       <strong>How it works</strong>
       <ol>
-        <li>Check server connection.</li>
+        <li>Use cloud mode for hosted GhostAPI.</li>
         <li>Open a site like Google, Instagram, or a portal.</li>
         <li>Click “Open recorder”.</li>
         <li>Record clicks/fills or pick data to extract.</li>

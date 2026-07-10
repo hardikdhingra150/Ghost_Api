@@ -88,6 +88,7 @@ if (manifest.background?.service_worker !== "background.js") {
 const contentRecorder = fs.readFileSync(path.join(extensionDir, "content-recorder.js"), "utf8");
 const popup = fs.readFileSync(path.join(extensionDir, "popup.html"), "utf8");
 const popupJs = fs.readFileSync(path.join(extensionDir, "popup.js"), "utf8");
+const backgroundJs = fs.readFileSync(path.join(extensionDir, "background.js"), "utf8");
 
 for (const expected of ["Save API", "Record clicks/fills", "/v1/workflows/"]) {
   if (!contentRecorder.includes(expected)) {
@@ -95,14 +96,24 @@ for (const expected of ["Save API", "Record clicks/fills", "/v1/workflows/"]) {
   }
 }
 
-for (const expected of ["Check server connection", "Your APIs will run here", "Privacy by design", "Use cloud"]) {
+for (const expected of ["Check server connection", "Your APIs will run here", "Privacy by design", "Use cloud", "No local command is needed"]) {
   if (!popup.includes(expected)) {
     throw new Error(`Extension popup missing expected text: ${expected}`);
   }
 }
 
-if (!popup.includes("icons/icon-48.png") || !popupJs.includes("https://ghostapi-api.onrender.com")) {
-  throw new Error("Extension popup must show the GhostAPI logo and default cloud shortcut to Render");
+for (const source of [popup, popupJs, backgroundJs, contentRecorder]) {
+  if (!source.includes("https://ghostapi-api.onrender.com")) {
+    throw new Error("Extension must default to the deployed Render GhostAPI cloud URL");
+  }
+}
+
+if (!popup.includes("icons/icon-48.png")) {
+  throw new Error("Extension popup must show the GhostAPI logo");
+}
+
+if (popup.includes("Start GhostAPI locally")) {
+  throw new Error("Extension popup should not tell cloud users to run local commands");
 }
 
 console.log(

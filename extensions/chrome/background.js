@@ -3,7 +3,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   if (!existing.ghostApiBaseUrl) {
     await chrome.storage.sync.set({
-      ghostApiBaseUrl: "http://127.0.0.1:4000"
+      ghostApiBaseUrl: "https://ghostapi-api.onrender.com"
     });
   }
 });
