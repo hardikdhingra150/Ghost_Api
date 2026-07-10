@@ -53,6 +53,14 @@ if (!html.includes("Production API checking")) {
   throw new Error("Dashboard HTML did not include launch status strip");
 }
 
+if (!html.includes("hero-logo")) {
+  throw new Error("Dashboard HTML did not include the right-side hero logo");
+}
+
+if (!html.includes("Week 14 database plan")) {
+  throw new Error("Dashboard HTML did not include Week 14 database readiness");
+}
+
 if (!html.includes("npm run package:extension")) {
   throw new Error("Dashboard HTML did not include extension packaging command");
 }
@@ -69,8 +77,10 @@ for (const expected of [
   "npm run test:deployment",
   "npm run test:extension",
   "GHOSTAPI_PUBLIC_API_URL=https://ghostapi-api.onrender.com",
+  "GHOSTAPI_DATABASE_DRIVER=postgres",
   "DATABASE_URL=&lt;Render Postgres connection string&gt;",
   "https://ghostapi-api.onrender.com/health",
+  "/v1/database/plan",
   "/v1/workflows"
 ]) {
   if (!html.includes(expected)) {
@@ -124,6 +134,7 @@ console.log(
         "Production command center",
         "Recorder distribution",
         "Production API checking",
+        "Week 14 database plan",
         "npm run package:extension",
         "Public API URL",
         "extensions/chrome",

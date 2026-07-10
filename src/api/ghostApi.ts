@@ -119,25 +119,30 @@ export function createGhostApi(): FastifyInstance {
   });
 
   app.get("/v1/cloud/plan", async () => {
+    const postgresConfigured = Boolean(config.deployment.databaseUrl);
+    const postgresDriverSelected = config.storage.databaseDriver === "postgres";
+
     return {
       ok: true,
       mode: config.cloud.mode,
-      currentPhase: "Week 13",
+      currentPhase: "Week 14",
       readiness: {
         tenantScopedStorage: true,
         localDefaultWorkspace: true,
         renderDeploymentConfig: true,
         extensionStorePackage: true,
+        postgresEnvironmentConfigured: postgresConfigured,
+        postgresDriverSelected,
+        productionDatabaseMigration: postgresConfigured && postgresDriverSelected,
         hostedAuth: false,
         encryptedCredentialVault: false,
         backgroundWorkerQueue: false,
-        chromeWebStoreDistribution: false,
-        productionDatabaseMigration: false
+        chromeWebStoreDistribution: false
       },
       nextMilestones: [
-        "Deploy the Fastify API to Render",
+        "Complete Postgres driver wiring for production persistence",
+        "Run a one-time SQLite-to-Postgres migration",
         "Hosted auth and organizations",
-        "Move local SQLite storage to Supabase Postgres",
         "Encrypted credential vault",
         "Queue-backed browser workers",
         "Chrome Web Store OAuth onboarding"
@@ -180,6 +185,41 @@ export function createGhostApi(): FastifyInstance {
       ],
       futureEnvironment: ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "REDIS_URL"],
       verificationCommands: ["npm run check", "npm run test:deployment", "npm run test:extension", "npm run package:extension"]
+    };
+  });
+
+  app.get("/v1/database/plan", async () => {
+    const postgresConfigured = Boolean(config.deployment.databaseUrl);
+    const postgresDriverSelected = config.storage.databaseDriver === "postgres";
+
+    return {
+      ok: true,
+      currentDriver: config.storage.databaseDriver,
+      activeStore: postgresConfigured && postgresDriverSelected ? "postgres" : "sqlite",
+      sqlite: {
+        status: "active",
+        databaseFile: config.storage.databaseFile
+      },
+      postgres: {
+        status: postgresConfigured ? "configured" : "not_configured",
+        driverSelected: postgresDriverSelected,
+        connectionStringConfigured: postgresConfigured,
+        connectionStringPreview: postgresConfigured ? maskDatabaseUrl(config.deployment.databaseUrl) : null
+      },
+      week14: {
+        goal: "Move GhostAPI persistence from local SQLite toward Render/Supabase Postgres without committing secrets.",
+        safeEnvironment: [
+          "GHOSTAPI_DATABASE_DRIVER=postgres",
+          "DATABASE_URL=<Render Postgres connection string>"
+        ],
+        migrationSteps: [
+          "Keep SQLite as the local development fallback",
+          "Configure Render DATABASE_URL as a secret environment variable",
+          "Select GHOSTAPI_DATABASE_DRIVER=postgres in cloud",
+          "Run schema migration for users, organizations, workflows, runs, and API keys",
+          "Verify /v1/database/plan before enabling required API keys"
+        ]
+      }
     };
   });
 
@@ -570,4 +610,18 @@ export function createGhostApi(): FastifyInstance {
   });
 
   return app;
+}
+
+function maskDatabaseUrl(databaseUrl: string | undefined): string | null {
+  if (!databaseUrl) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(databaseUrl);
+    const databaseName = parsedUrl.pathname.split("/").filter(Boolean).pop() ?? "database";
+    return `${parsedUrl.protocol}//${parsedUrl.hostname}/.../${databaseName}`;
+  } catch {
+    return "<configured>";
+  }
 }

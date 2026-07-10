@@ -39,6 +39,7 @@ export const config = {
     redisUrl: process.env.REDIS_URL
   },
   storage: {
+    databaseDriver: process.env.GHOSTAPI_DATABASE_DRIVER ?? "sqlite",
     dataDir: process.env.GHOSTAPI_DATA_DIR ?? path.join(process.cwd(), "data"),
     databaseFile: process.env.GHOSTAPI_DATABASE_FILE ?? path.join(process.cwd(), "data", "ghostapi.sqlite"),
     workflowsDir: process.env.GHOSTAPI_WORKFLOWS_DIR ?? path.join(process.cwd(), "data", "workflows"),

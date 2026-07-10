@@ -65,7 +65,7 @@ Open:
 http://127.0.0.1:4000/dashboard
 ```
 
-The dashboard shows these same commands in the `Setup commands` panel so non-technical users do not need to hunt through the README.
+The dashboard shows these same commands in the production command center so non-technical users do not need to hunt through the README.
 
 ## Create an API from any website with the extension
 
@@ -197,6 +197,23 @@ Deployment plan API:
 ```bash
 curl http://127.0.0.1:4000/v1/deployment/plan
 ```
+
+## Week 14 database readiness
+
+GhostAPI now exposes a safe database readiness plan for the SQLite-to-Postgres migration path.
+
+```bash
+curl http://127.0.0.1:4000/v1/database/plan
+```
+
+Keep local development on SQLite. For production Postgres, configure real values only in Render or a secret manager:
+
+```bash
+GHOSTAPI_DATABASE_DRIVER=postgres
+DATABASE_URL=<Render Postgres connection string>
+```
+
+Details live in `docs/week14-database.md`.
 
 ## Bookmarklet fallback
 

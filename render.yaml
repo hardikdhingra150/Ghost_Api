@@ -18,5 +18,9 @@ services:
         sync: false
       - key: GHOSTAPI_REQUIRE_API_KEY
         value: "true"
+      - key: GHOSTAPI_DATABASE_DRIVER
+        value: sqlite
+      - key: DATABASE_URL
+        sync: false
       - key: GHOSTAPI_API_KEY
         generateValue: true

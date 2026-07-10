@@ -49,6 +49,8 @@ for (const expected of [
   "runtime: docker",
   "healthCheckPath: /health",
   "GHOSTAPI_DEPLOYMENT_PROVIDER",
+  "GHOSTAPI_DATABASE_DRIVER",
+  "DATABASE_URL",
   "GHOSTAPI_API_KEY"
 ]) {
   if (!renderYaml.includes(expected)) {
@@ -59,6 +61,7 @@ for (const expected of [
 for (const expected of [
   "GHOSTAPI_PUBLIC_API_URL=http://127.0.0.1:4000",
   "GHOSTAPI_REQUIRE_API_KEY=false",
+  "GHOSTAPI_DATABASE_DRIVER=sqlite",
   "# GHOSTAPI_API_KEY=replace-with-generated-key",
   "# DATABASE_URL=postgresql://example.invalid/ghostapi",
   "# REDIS_URL=rediss://example.invalid:6379"

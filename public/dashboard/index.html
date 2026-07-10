@@ -41,6 +41,9 @@
           <span class="status-dot"></span>
           <span id="serviceStatus">Checking deployment</span>
         </div>
+        <div class="hero-logo-wrap" aria-hidden="true">
+          <img class="hero-logo" src="/assets/ghostapi-logo.svg" alt="" />
+        </div>
         <dl>
           <div>
             <dt>Public API URL</dt>
@@ -97,6 +100,13 @@
         <div>
           <strong id="launchRuntime">Cloud runtime</strong>
           <p>Configured for Render now, with Postgres migration and worker queues ready to become the next layer.</p>
+        </div>
+      </article>
+      <article>
+        <span class="status-dot"></span>
+        <div>
+          <strong id="databasePlanBadge">Week 14 database plan</strong>
+          <p id="databasePlanSummary">Checking SQLite/Postgres readiness without exposing secrets.</p>
         </div>
       </article>
     </section>
@@ -267,7 +277,10 @@
             <p class="eyebrow">Cloud health</p>
             <h2>Deployment and environment</h2>
           </div>
-          <a class="button secondary" href="/v1/deployment/plan" target="_blank" rel="noreferrer">Open plan API</a>
+          <div class="button-row">
+            <a class="button secondary" href="/v1/deployment/plan" target="_blank" rel="noreferrer">Open deploy API</a>
+            <a class="button secondary" href="/v1/database/plan" target="_blank" rel="noreferrer">Open database API</a>
+          </div>
         </div>
         <div id="deploymentCards" class="deployment-grid"></div>
       </section>

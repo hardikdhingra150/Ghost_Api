@@ -27,6 +27,9 @@ const planPayload = (await planResponse.json()) as {
     tenantScopedStorage?: boolean;
     localDefaultWorkspace?: boolean;
     renderDeploymentConfig?: boolean;
+    postgresEnvironmentConfigured?: boolean;
+    postgresDriverSelected?: boolean;
+    productionDatabaseMigration?: boolean;
   };
 };
 
@@ -38,8 +41,8 @@ if (!planPayload.readiness?.tenantScopedStorage || !planPayload.readiness?.local
   throw new Error("Expected cloud readiness to include tenant-scoped local workspace");
 }
 
-if (planPayload.currentPhase !== "Week 13" || !planPayload.readiness?.renderDeploymentConfig) {
-  throw new Error("Expected cloud readiness to include Week 13 Render deployment config");
+if (planPayload.currentPhase !== "Week 14" || !planPayload.readiness?.renderDeploymentConfig) {
+  throw new Error("Expected cloud readiness to include Week 14 database readiness after Render deployment");
 }
 
 const deploymentResponse = await fetch("http://127.0.0.1:4000/v1/deployment/plan");
@@ -65,6 +68,31 @@ for (const service of ["Render", "Supabase Postgres", "Upstash Redis"]) {
   }
 }
 
+const databaseResponse = await fetch("http://127.0.0.1:4000/v1/database/plan");
+const databasePayload = (await databaseResponse.json()) as {
+  ok?: boolean;
+  currentDriver?: string;
+  activeStore?: string;
+  postgres?: {
+    connectionStringConfigured?: boolean;
+  };
+  week14?: {
+    safeEnvironment?: string[];
+  };
+};
+
+if (!databaseResponse.ok || !databasePayload.ok) {
+  throw new Error("Expected /v1/database/plan to return Week 14 database readiness");
+}
+
+if (!databasePayload.currentDriver || !databasePayload.activeStore) {
+  throw new Error("Expected database plan to include current driver and active store");
+}
+
+if (!databasePayload.week14?.safeEnvironment?.includes("DATABASE_URL=<Render Postgres connection string>")) {
+  throw new Error("Expected database plan to include safe DATABASE_URL placeholder");
+}
+
 console.log(
   JSON.stringify(
     {
@@ -72,7 +100,8 @@ console.log(
       userId: mePayload.account.user.id,
       organizationId: mePayload.account.organization.id,
       readiness: planPayload.readiness,
-      deployment: deploymentPayload
+      deployment: deploymentPayload,
+      database: databasePayload
     },
     null,
     2

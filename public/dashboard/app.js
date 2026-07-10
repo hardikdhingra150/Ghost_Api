@@ -3,6 +3,7 @@ const api = {
   getMe: () => requestJson("/v1/me"),
   getCloudPlan: () => requestJson("/v1/cloud/plan"),
   getDeploymentPlan: () => requestJson("/v1/deployment/plan"),
+  getDatabasePlan: () => requestJson("/v1/database/plan"),
   getApiKeys: () => requestJson("/v1/api-keys"),
   getRuns: (limit, offset) => requestJson(`/v1/runs/page?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
   getWorkflow: () => requestJson("/v1/actions/get-attendance/workflow"),
@@ -77,6 +78,8 @@ const els = {
   launchPublicUrl: document.querySelector("#launchPublicUrl"),
   launchRuntime: document.querySelector("#launchRuntime"),
   deploymentHealthBadge: document.querySelector("#deploymentHealthBadge"),
+  databasePlanBadge: document.querySelector("#databasePlanBadge"),
+  databasePlanSummary: document.querySelector("#databasePlanSummary"),
   workflowCards: document.querySelector("#workflowCards"),
   deploymentCards: document.querySelector("#deploymentCards"),
   bookmarkletLink: document.querySelector("#bookmarkletLink"),
@@ -106,15 +109,15 @@ function wireEvents() {
   els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
   els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
   els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
-  els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
-  els.installBookmarkletButton.addEventListener("click", installBookmarklet);
-  els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
-  els.copyAllCommandsButton.addEventListener("click", copyAllCommands);
-  els.copyApiCommandsButton.addEventListener("click", () => copyTextFromElement(els.curlExample, "Deployed API commands copied."));
-  els.copyEnvCommandsButton.addEventListener("click", () => copyTextFromElement(els.envExample, "Render environment template copied."));
-  els.copyRenderSmokeButton.addEventListener("click", () => copyTextFromElement(els.renderSmokeExample, "Render smoke-test commands copied."));
+  els.copyBookmarkletButton.addEventListener("click", () => copyBookmarklet(els.copyBookmarkletButton));
+  els.installBookmarkletButton.addEventListener("click", () => installBookmarklet(els.installBookmarkletButton));
+  els.copyExtensionPathButton.addEventListener("click", () => copyExtensionPath(els.copyExtensionPathButton));
+  els.copyAllCommandsButton.addEventListener("click", () => copyAllCommands(els.copyAllCommandsButton));
+  els.copyApiCommandsButton.addEventListener("click", () => copyTextFromElement(els.curlExample, "Deployed API commands copied.", els.copyApiCommandsButton));
+  els.copyEnvCommandsButton.addEventListener("click", () => copyTextFromElement(els.envExample, "Render environment template copied.", els.copyEnvCommandsButton));
+  els.copyRenderSmokeButton.addEventListener("click", () => copyTextFromElement(els.renderSmokeExample, "Render smoke-test commands copied.", els.copyRenderSmokeButton));
   document.querySelectorAll(".copy-command").forEach((button) => {
-    button.addEventListener("click", () => copyCommand(button.dataset.command));
+    button.addEventListener("click", () => copyCommand(button.dataset.command, button));
   });
 }
 
@@ -125,11 +128,12 @@ async function boot() {
 
 async function refreshOverview() {
   setStatus("Refreshing deployment status...");
-  const [health, me, cloud, deployment, apiKeys] = await Promise.allSettled([
+  const [health, me, cloud, deployment, database, apiKeys] = await Promise.allSettled([
     api.getHealth(),
     api.getMe(),
     api.getCloudPlan(),
     api.getDeploymentPlan(),
+    api.getDatabasePlan(),
     api.getApiKeys()
   ]);
 
@@ -151,6 +155,10 @@ async function refreshOverview() {
   if (deployment.status === "fulfilled") {
     renderDeployment(deployment.value, cloud.status === "fulfilled" ? cloud.value : null);
     updateCommandExamples(deployment.value.publicApiUrl || state.publicApiUrl);
+  }
+
+  if (database.status === "fulfilled") {
+    renderDatabasePlan(database.value);
   }
 
   if (apiKeys.status === "fulfilled") {
@@ -187,6 +195,23 @@ function renderDeployment(payload, cloudPayload) {
     miniCard("Readiness", totalCount ? `${readyCount}/${totalCount} foundations ready` : "Plan loaded", payload.currentProvider || "local"),
     ...services.map((service) => miniCard(service.name, service.role, service.status))
   ].join("");
+}
+
+function renderDatabasePlan(payload) {
+  const postgres = payload.postgres || {};
+  const isPostgresReady = payload.activeStore === "postgres";
+  els.databasePlanBadge.textContent = isPostgresReady ? "Postgres active" : "Week 14 database plan";
+  els.databasePlanSummary.textContent = isPostgresReady
+    ? "Cloud persistence is pointed at Postgres. Keep SQLite only as the local fallback."
+    : `Active store: ${payload.activeStore || "sqlite"}. Set DATABASE_URL and GHOSTAPI_DATABASE_DRIVER=postgres when ready.`;
+  els.deploymentCards.insertAdjacentHTML(
+    "afterbegin",
+    miniCard(
+      "Week 14 database",
+      `Active store: ${payload.activeStore || "sqlite"}. Postgres URL: ${postgres.connectionStringConfigured ? "configured" : "not configured"}.`,
+      isPostgresReady ? "configured" : "planned"
+    )
+  );
 }
 
 function miniCard(title, body, status) {
@@ -253,34 +278,34 @@ function setupBookmarklet() {
   els.bookmarkletCode.value = bookmarklet;
 }
 
-async function copyBookmarklet() {
-  await navigator.clipboard.writeText(els.bookmarkletCode.value);
+async function copyBookmarklet(button) {
+  await copyToClipboard(els.bookmarkletCode.value, button);
   els.bookmarkInstallGuide.hidden = false;
   setStatus("GhostAPI bookmarklet copied. Save it as a browser bookmark.");
 }
 
-async function installBookmarklet() {
-  await navigator.clipboard.writeText(els.bookmarkletCode.value);
+async function installBookmarklet(button) {
+  await copyToClipboard(els.bookmarkletCode.value, button);
   els.bookmarkInstallGuide.hidden = false;
   setStatus("Bookmark code copied. Save it as a browser bookmark.");
 }
 
-async function copyExtensionPath() {
-  await navigator.clipboard.writeText("extensions/chrome");
+async function copyExtensionPath(button) {
+  await copyToClipboard("extensions/chrome", button);
   setStatus("Extension folder copied.");
 }
 
-async function copyCommand(command) {
-  await navigator.clipboard.writeText(command);
+async function copyCommand(command, button) {
+  await copyToClipboard(command, button);
   setStatus("Copied command.");
 }
 
-async function copyTextFromElement(element, message) {
-  await navigator.clipboard.writeText(element.textContent.trim());
+async function copyTextFromElement(element, message, button) {
+  await copyToClipboard(element.textContent.trim(), button);
   setStatus(message);
 }
 
-async function copyAllCommands() {
+async function copyAllCommands(button) {
   const commands = [
     "npm install",
     "npx playwright install chromium",
@@ -296,8 +321,40 @@ async function copyAllCommands() {
     "",
     els.envExample.textContent.trim()
   ].join("\n");
-  await navigator.clipboard.writeText(commands);
+  await copyToClipboard(commands, button);
   setStatus("Setup and verification commands copied.");
+}
+
+async function copyToClipboard(text, button) {
+  showCopied(button);
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+}
+
+function showCopied(button) {
+  if (!button) return;
+
+  const originalText = button.dataset.originalText || button.textContent;
+  button.dataset.originalText = originalText;
+  button.textContent = "Copied";
+  button.classList.add("copied");
+
+  window.setTimeout(() => {
+    button.textContent = originalText;
+    button.classList.remove("copied");
+  }, 1400);
 }
 
 async function requestJson(url, options) {
