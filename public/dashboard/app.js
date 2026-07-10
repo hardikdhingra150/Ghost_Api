@@ -1,52 +1,38 @@
 const api = {
-  async getRuns(limit, offset) {
-    return requestJson(`/v1/runs/page?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`);
-  },
-  async getWorkflow() {
-    return requestJson("/v1/actions/get-attendance/workflow");
-  },
-  async getWorkflowVersions() {
-    return requestJson("/v1/actions/get-attendance/workflow/versions");
-  },
-  async getWorkflowVersion(version) {
-    return requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}`);
-  },
-  async restoreWorkflowVersion(version) {
-    return requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}/restore`, {
-      method: "POST"
-    });
-  },
-  async diffWorkflowVersions(from, to) {
-    return requestJson(`/v1/actions/get-attendance/workflow/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
-  },
-  async saveWorkflow(workflow) {
-    return requestJson("/v1/actions/get-attendance/workflow", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(workflow)
-    });
-  },
-  async runAttendance(credentials) {
-    return requestJson("/v1/actions/get-attendance/run", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ credentials })
-    });
-  },
-  async getWorkflows() {
-    return requestJson("/v1/workflows");
-  }
+  getHealth: () => requestJson("/health"),
+  getMe: () => requestJson("/v1/me"),
+  getCloudPlan: () => requestJson("/v1/cloud/plan"),
+  getDeploymentPlan: () => requestJson("/v1/deployment/plan"),
+  getApiKeys: () => requestJson("/v1/api-keys"),
+  getRuns: (limit, offset) => requestJson(`/v1/runs/page?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
+  getWorkflow: () => requestJson("/v1/actions/get-attendance/workflow"),
+  getWorkflowVersions: () => requestJson("/v1/actions/get-attendance/workflow/versions"),
+  getWorkflowVersion: (version) => requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}`),
+  restoreWorkflowVersion: (version) => requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}/restore`, { method: "POST" }),
+  diffWorkflowVersions: (from, to) => requestJson(`/v1/actions/get-attendance/workflow/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  saveWorkflow: (workflow) => requestJson("/v1/actions/get-attendance/workflow", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(workflow)
+  }),
+  runAttendance: (credentials) => requestJson("/v1/actions/get-attendance/run", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ credentials })
+  }),
+  getWorkflows: () => requestJson("/v1/workflows")
 };
 
 const state = {
   runs: [],
   selectedRunId: null,
-  workflowStepCount: 10,
+  workflowStepCount: 0,
   runLimit: 10,
   runOffset: 0,
   runTotal: 0,
   workflowVersion: null,
-  workflowVersions: []
+  workflowVersions: [],
+  publicApiUrl: window.location.origin
 };
 
 const els = {
@@ -68,15 +54,25 @@ const els = {
   workflowDiff: document.querySelector("#workflowDiff"),
   status: document.querySelector("#status"),
   workflowStatus: document.querySelector("#workflowStatus"),
-  runs: document.querySelector("#runs"),
+  runs: document.querySelector("#runsList"),
   runCount: document.querySelector("#runCount"),
   selectedRun: document.querySelector("#selectedRun"),
   selectedRunStatus: document.querySelector("#selectedRunStatus"),
   workflowJson: document.querySelector("#workflowJson"),
   runsMetric: document.querySelector("#runsMetric"),
   stepsMetric: document.querySelector("#stepsMetric"),
-  statusMetric: document.querySelector("#statusMetric")
-  ,
+  statusMetric: document.querySelector("#statusMetric"),
+  workflowsMetric: document.querySelector("#workflowsMetric"),
+  publicApiUrl: document.querySelector("#publicApiUrl"),
+  modeMetric: document.querySelector("#modeMetric"),
+  providerMetric: document.querySelector("#providerMetric"),
+  serviceStatus: document.querySelector("#serviceStatus"),
+  apiKeyBadge: document.querySelector("#apiKeyBadge"),
+  apiKeySummary: document.querySelector("#apiKeySummary"),
+  apiExample: document.querySelector("#apiExample"),
+  curlExample: document.querySelector("#curlExample"),
+  workflowCards: document.querySelector("#workflowCards"),
+  deploymentCards: document.querySelector("#deploymentCards"),
   bookmarkletLink: document.querySelector("#bookmarkletLink"),
   installBookmarkletButton: document.querySelector("#installBookmarkletButton"),
   copyBookmarkletButton: document.querySelector("#copyBookmarkletButton"),
@@ -86,30 +82,138 @@ const els = {
   copyAllCommandsButton: document.querySelector("#copyAllCommandsButton")
 };
 
-els.runButton.addEventListener("click", runAttendance);
-els.heroRunButton.addEventListener("click", runAttendance);
-els.refreshButton.addEventListener("click", loadRuns);
-els.heroRefreshButton.addEventListener("click", loadRuns);
-els.prevRunsButton.addEventListener("click", () => changeRunPage(-1));
-els.nextRunsButton.addEventListener("click", () => changeRunPage(1));
-els.loadWorkflowButton.addEventListener("click", loadWorkflow);
-els.saveWorkflowButton.addEventListener("click", saveWorkflow);
-els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
-els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
-els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
-els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
-els.installBookmarkletButton.addEventListener("click", installBookmarklet);
-els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
-els.copyAllCommandsButton.addEventListener("click", copyAllCommands);
-document.querySelectorAll(".copy-command").forEach((button) => {
-  button.addEventListener("click", () => copyCommand(button.dataset.command));
-});
-
+wireEvents();
 boot();
+
+function wireEvents() {
+  els.runButton.addEventListener("click", runAttendance);
+  els.heroRunButton.addEventListener("click", runAttendance);
+  els.refreshButton.addEventListener("click", loadRuns);
+  els.heroRefreshButton.addEventListener("click", refreshOverview);
+  els.prevRunsButton.addEventListener("click", () => changeRunPage(-1));
+  els.nextRunsButton.addEventListener("click", () => changeRunPage(1));
+  els.loadWorkflowButton.addEventListener("click", loadWorkflow);
+  els.saveWorkflowButton.addEventListener("click", saveWorkflow);
+  els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
+  els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
+  els.diffVersionButton.addEventListener("click", diffSelectedWorkflowVersion);
+  els.copyBookmarkletButton.addEventListener("click", copyBookmarklet);
+  els.installBookmarkletButton.addEventListener("click", installBookmarklet);
+  els.copyExtensionPathButton.addEventListener("click", copyExtensionPath);
+  els.copyAllCommandsButton.addEventListener("click", copyAllCommands);
+  document.querySelectorAll(".copy-command").forEach((button) => {
+    button.addEventListener("click", () => copyCommand(button.dataset.command));
+  });
+}
 
 async function boot() {
   setupBookmarklet();
-  await Promise.all([loadRuns(), loadWorkflow()]);
+  await Promise.allSettled([refreshOverview(), loadRuns(), loadWorkflow(), loadWorkflows()]);
+}
+
+async function refreshOverview() {
+  setStatus("Refreshing deployment status...");
+  const [health, me, cloud, deployment, apiKeys] = await Promise.allSettled([
+    api.getHealth(),
+    api.getMe(),
+    api.getCloudPlan(),
+    api.getDeploymentPlan(),
+    api.getApiKeys()
+  ]);
+
+  if (health.status === "fulfilled") {
+    const value = health.value;
+    state.publicApiUrl = value.publicApiUrl || window.location.origin;
+    els.serviceStatus.textContent = value.ok ? "API online" : "API status unknown";
+    els.publicApiUrl.textContent = state.publicApiUrl;
+    els.modeMetric.textContent = value.mode || "local";
+    els.providerMetric.textContent = value.deploymentProvider || "local";
+  } else {
+    els.serviceStatus.textContent = "Health check unavailable";
+  }
+
+  if (deployment.status === "fulfilled") {
+    renderDeployment(deployment.value, cloud.status === "fulfilled" ? cloud.value : null);
+    updateCommandExamples(deployment.value.publicApiUrl || state.publicApiUrl);
+  }
+
+  if (apiKeys.status === "fulfilled") {
+    renderApiKeys(apiKeys.value);
+  } else {
+    els.apiKeyBadge.textContent = "Optional";
+    els.apiKeySummary.textContent = "API key protection is not required for this environment or is not reachable yet.";
+  }
+
+  if (me.status === "fulfilled" && me.value.account) {
+    const orgName = me.value.account.organization?.name || me.value.account.orgName || "Default workspace";
+    els.serviceStatus.textContent = `${els.serviceStatus.textContent} · ${orgName}`;
+  }
+
+  setStatus("Dashboard refreshed.");
+}
+
+function renderApiKeys(payload) {
+  const keys = payload.apiKeys || [];
+  els.apiKeyBadge.textContent = keys.length === 0 ? "No stored keys" : `${keys.length} key${keys.length === 1 ? "" : "s"}`;
+  els.apiKeySummary.textContent = keys.length === 0
+    ? "This workspace has no stored API keys yet. For public testing, calls can run without a key when the server allows it."
+    : "Stored keys are available for this workspace. GhostAPI only displays key metadata after creation.";
+}
+
+function renderDeployment(payload, cloudPayload) {
+  const services = payload.services || [];
+  const readiness = cloudPayload?.readiness || {};
+  const readyCount = Object.values(readiness).filter(Boolean).length;
+  const totalCount = Object.keys(readiness).length;
+
+  els.deploymentCards.innerHTML = [
+    miniCard("Public endpoint", payload.publicApiUrl || state.publicApiUrl, payload.currentMode || "local"),
+    miniCard("Readiness", totalCount ? `${readyCount}/${totalCount} foundations ready` : "Plan loaded", payload.currentProvider || "local"),
+    ...services.map((service) => miniCard(service.name, service.role, service.status))
+  ].join("");
+}
+
+function miniCard(title, body, status) {
+  return `<article class="mini-card">
+    <div class="row space">
+      <h3>${escapeHtml(title)}</h3>
+      <span class="badge ${escapeHtml(status)}">${escapeHtml(status)}</span>
+    </div>
+    <p>${escapeHtml(body)}</p>
+  </article>`;
+}
+
+async function loadWorkflows() {
+  try {
+    const payload = await api.getWorkflows();
+    const workflows = payload.workflows || [];
+    els.workflowsMetric.textContent = String(workflows.length);
+    els.workflowCards.innerHTML = workflows.length
+      ? workflows.map(renderWorkflowCard).join("")
+      : '<p class="empty">No workflows have been recorded yet. Install the recorder, capture a website task, and save it as your first API.</p>';
+  } catch (error) {
+    els.workflowCards.innerHTML = `<p class="failed">Could not load workflows: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderWorkflowCard(workflow) {
+  const endpoint = workflow.id === "get-attendance"
+    ? "/v1/actions/get-attendance/run"
+    : `/v1/workflows/${workflow.id}/run`;
+  return `<article class="mini-card">
+    <div class="row space">
+      <h3>${escapeHtml(workflow.name || workflow.id)}</h3>
+      <span class="badge">v${escapeHtml(String(workflow.version || 1))}</span>
+    </div>
+    <p>${escapeHtml(workflow.description || "Recorded browser workflow ready to run as an API.")}</p>
+    <code>${escapeHtml(endpoint)}</code>
+  </article>`;
+}
+
+function updateCommandExamples(baseUrl) {
+  const cleanBase = String(baseUrl || window.location.origin).replace(/\/$/, "");
+  els.apiExample.textContent = `curl ${cleanBase}/v1/workflows`;
+  els.curlExample.textContent = `curl ${cleanBase}/health\ncurl ${cleanBase}/v1/workflows`;
 }
 
 function setupBookmarklet() {
@@ -123,24 +227,19 @@ function setupBookmarklet() {
 
 async function copyBookmarklet() {
   await navigator.clipboard.writeText(els.bookmarkletCode.value);
-  showBookmarkInstallGuide();
+  els.bookmarkInstallGuide.hidden = false;
   setStatus("GhostAPI bookmarklet copied. Save it as a browser bookmark.");
 }
 
 async function installBookmarklet() {
   await navigator.clipboard.writeText(els.bookmarkletCode.value);
-  showBookmarkInstallGuide();
-  els.installBookmarkletButton.textContent = "Copied — now save bookmark";
-  setStatus("Bookmark code copied. Press ⌘D or Ctrl+D, edit the bookmark URL, and paste it.");
-}
-
-function showBookmarkInstallGuide() {
   els.bookmarkInstallGuide.hidden = false;
+  setStatus("Bookmark code copied. Save it as a browser bookmark.");
 }
 
 async function copyExtensionPath() {
   await navigator.clipboard.writeText("extensions/chrome");
-  setStatus("Extension folder copied. Open chrome://extensions, Load unpacked, then select extensions/chrome.");
+  setStatus("Extension folder copied.");
 }
 
 async function copyCommand(command) {
@@ -153,12 +252,14 @@ async function copyAllCommands() {
     "npm install",
     "npx playwright install chromium",
     "npm start",
-    "Open chrome://extensions",
-    "Load unpacked: extensions/chrome",
+    "npm run check",
+    "npm run test:dashboard",
+    "npm run test:cloud",
+    "npm run test:deployment",
     "npm run package:extension"
-  ].join("\\n");
+  ].join("\n");
   await navigator.clipboard.writeText(commands);
-  setStatus("All setup commands copied.");
+  setStatus("Setup and verification commands copied.");
 }
 
 async function requestJson(url, options) {
@@ -176,7 +277,7 @@ async function requestJson(url, options) {
 
 async function runAttendance() {
   setBusy(true);
-  setStatus("Running browser workflow…");
+  setStatus("Running browser workflow...");
 
   try {
     const payload = await api.runAttendance({
@@ -195,27 +296,31 @@ async function runAttendance() {
 }
 
 async function loadRuns() {
-  const payload = await api.getRuns(state.runLimit, state.runOffset);
-  state.runs = payload.runs || [];
-  state.runTotal = payload.total || state.runs.length;
-  state.runLimit = payload.limit || state.runLimit;
-  state.runOffset = payload.offset || state.runOffset;
-  els.runCount.textContent = state.runs.length + " runs";
-  els.runsMetric.textContent = String(state.runTotal);
-  els.statusMetric.textContent = state.runs[0]?.status || "Ready";
-  renderRunPager();
-  renderRuns();
+  try {
+    const payload = await api.getRuns(state.runLimit, state.runOffset);
+    state.runs = payload.runs || [];
+    state.runTotal = payload.total || state.runs.length;
+    state.runLimit = payload.limit || state.runLimit;
+    state.runOffset = payload.offset || state.runOffset;
+    els.runCount.textContent = `${state.runTotal} run${state.runTotal === 1 ? "" : "s"}`;
+    els.runsMetric.textContent = String(state.runTotal);
+    els.statusMetric.textContent = state.runs[0]?.status || "Ready";
+    renderRunPager();
+    renderRuns();
 
-  if (!state.selectedRunId && state.runs[0]) {
-    state.selectedRunId = state.runs[0].id;
-  }
-
-  if (state.selectedRunId) {
-    const selected = state.runs.find((run) => run.id === state.selectedRunId) || state.runs[0];
-    if (selected) {
-      state.selectedRunId = selected.id;
-      renderSelectedRun(selected);
+    if (!state.selectedRunId && state.runs[0]) {
+      state.selectedRunId = state.runs[0].id;
     }
+
+    if (state.selectedRunId) {
+      const selected = state.runs.find((run) => run.id === state.selectedRunId) || state.runs[0];
+      if (selected) {
+        state.selectedRunId = selected.id;
+        renderSelectedRun(selected);
+      }
+    }
+  } catch (error) {
+    els.runs.innerHTML = `<p class="failed">Could not load runs: ${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -238,7 +343,7 @@ async function loadWorkflow() {
 }
 
 async function saveWorkflow() {
-  setWorkflowStatus("Validating workflow…");
+  setWorkflowStatus("Validating workflow...");
 
   try {
     const workflow = JSON.parse(els.workflowJson.value);
@@ -249,7 +354,7 @@ async function saveWorkflow() {
     els.stepsMetric.textContent = String(state.workflowStepCount);
     els.workflowJson.value = JSON.stringify(savedWorkflow, null, 2);
     setWorkflowStatus("Workflow saved. Version " + savedWorkflow.version + ".");
-    await loadWorkflowVersions();
+    await Promise.all([loadWorkflowVersions(), loadWorkflows()]);
   } catch (error) {
     setWorkflowStatus("Save failed: " + error.message, true);
   }
@@ -259,9 +364,7 @@ async function loadWorkflowVersions() {
   const payload = await api.getWorkflowVersions();
   state.workflowVersions = payload.versions || [];
   els.workflowVersionSelect.innerHTML = state.workflowVersions
-    .map((item) => '<option value="' + escapeHtml(String(item.version)) + '">' +
-      'v' + escapeHtml(String(item.version)) + ' • ' + new Date(item.createdAt).toLocaleString() +
-    '</option>')
+    .map((item) => `<option value="${escapeHtml(String(item.version))}">v${escapeHtml(String(item.version))} - ${new Date(item.createdAt).toLocaleString()}</option>`)
     .join("");
 
   if (state.workflowVersion) {
@@ -298,7 +401,7 @@ async function restoreSelectedWorkflowVersion() {
     els.workflowJson.value = JSON.stringify(payload.workflow, null, 2);
     state.workflowVersion = payload.workflow.version;
     setWorkflowStatus("Restored version " + version + " as version " + payload.workflow.version + ".");
-    await loadWorkflowVersions();
+    await Promise.all([loadWorkflowVersions(), loadWorkflows()]);
   } catch (error) {
     setWorkflowStatus("Restore failed: " + error.message, true);
   }
@@ -315,7 +418,7 @@ async function diffSelectedWorkflowVersion() {
   try {
     const payload = await api.diffWorkflowVersions(selected, current);
     els.workflowDiff.textContent = JSON.stringify(payload.changes, null, 2);
-    setWorkflowStatus("Diff loaded: v" + selected + " → v" + current + ".");
+    setWorkflowStatus("Diff loaded: v" + selected + " to v" + current + ".");
   } catch (error) {
     setWorkflowStatus("Diff failed: " + error.message, true);
   }
@@ -330,27 +433,27 @@ function renderRunPager() {
   const start = state.runTotal === 0 ? 0 : state.runOffset + 1;
   const end = Math.min(state.runOffset + state.runLimit, state.runTotal);
   const page = Math.floor(state.runOffset / state.runLimit) + 1;
-  els.runPageStatus.textContent = state.runTotal === 0 ? "No runs" : `${start}-${end} of ${state.runTotal} • page ${page}`;
+  els.runPageStatus.textContent = state.runTotal === 0 ? "No runs" : `${start}-${end} of ${state.runTotal} - page ${page}`;
   els.prevRunsButton.disabled = state.runOffset <= 0;
   els.nextRunsButton.disabled = state.runOffset + state.runLimit >= state.runTotal;
 }
 
 function renderRuns() {
   if (state.runs.length === 0) {
-    els.runs.innerHTML = '<p class="muted">No runs yet.</p>';
+    els.runs.innerHTML = '<p class="empty">No runs yet. Run the demo workflow or capture a website task to see automation history here.</p>';
     return;
   }
 
   els.runs.innerHTML = state.runs.map((run) => {
     const active = run.id === state.selectedRunId ? " active" : "";
-    return '<button class="run-item' + active + '" data-run-id="' + escapeHtml(run.id) + '">' +
-      '<div class="row space">' +
-        '<strong>' + escapeHtml(run.actionId) + '</strong>' +
-        '<span class="' + escapeHtml(run.status) + '">' + escapeHtml(run.status) + '</span>' +
-      '</div>' +
-      '<div class="muted mono tiny">' + escapeHtml(run.id) + '</div>' +
-      '<div class="muted tiny">' + new Date(run.createdAt).toLocaleString() + ' • ' + run.stepLog.length + ' steps</div>' +
-    '</button>';
+    return `<button class="run-item${active}" data-run-id="${escapeHtml(run.id)}">
+      <div class="row space">
+        <strong>${escapeHtml(run.actionId)}</strong>
+        <span class="${escapeHtml(run.status)}">${escapeHtml(run.status)}</span>
+      </div>
+      <div class="muted mono tiny">${escapeHtml(run.id)}</div>
+      <div class="muted tiny">${new Date(run.createdAt).toLocaleString()} - ${(run.stepLog || []).length} steps</div>
+    </button>`;
   }).join("");
 
   els.runs.querySelectorAll(".run-item").forEach((button) => {
@@ -365,45 +468,34 @@ function renderRuns() {
 
 function renderSelectedRun(run) {
   els.selectedRunStatus.textContent = run.status;
-  els.selectedRunStatus.className = "pill " + run.status;
+  els.selectedRunStatus.className = "badge " + run.status;
 
   const result = run.result || {};
   const subjects = Array.isArray(result.subjects) ? result.subjects : [];
 
   els.selectedRun.innerHTML =
-    '<div class="details-grid">' +
-      '<div class="card">' +
-        '<div class="row space">' +
-          '<div><h3>Run identity</h3><div class="muted mono tiny">' + escapeHtml(run.id) + '</div></div>' +
-          '<span class="pill">workflow v' + escapeHtml(String(run.workflowVersion)) + '</span>' +
-        '</div>' +
-        '<p>Status: <strong class="' + escapeHtml(run.status) + '">' + escapeHtml(run.status) + '</strong></p>' +
-        '<p class="muted">Created: ' + new Date(run.createdAt).toLocaleString() + '</p>' +
-        (run.error ? '<p class="failed">Error: ' + escapeHtml(run.error) + '</p>' : '') +
-      '</div>' +
-      '<div class="card green-card">' +
-        '<h3>Portal output</h3>' +
-        '<p>Student<br><strong style="font-size:28px;color:var(--ink)">' + escapeHtml(result.student || "-") + '</strong></p>' +
-        '<p>Semester <strong>' + escapeHtml(result.semester || "-") + '</strong></p>' +
-      '</div>' +
-    '</div>' +
-    '<div class="card">' +
-      '<div class="row space"><h3>Attendance result</h3><span class="pill">' + subjects.length + ' subjects</span></div>' +
-      renderSubjects(subjects) +
-    '</div>' +
-    '<div class="card">' +
-      '<div class="row space"><h3>Step log</h3><span class="pill">' + (run.stepLog || []).length + ' steps</span></div>' +
-      renderSteps(run.stepLog || []) +
-    '</div>' +
-    '<div class="card">' +
-      '<h3>Stored run JSON</h3>' +
-      '<pre>' + escapeHtml(JSON.stringify(run, null, 2)) + '</pre>' +
-    '</div>';
+    `<div class="mini-card">
+      <div class="row space">
+        <div><h3>Run identity</h3><div class="muted mono tiny">${escapeHtml(run.id)}</div></div>
+        <span class="badge">workflow v${escapeHtml(String(run.workflowVersion))}</span>
+      </div>
+      <p>Status: <strong class="${escapeHtml(run.status)}">${escapeHtml(run.status)}</strong></p>
+      <p class="muted">Created: ${new Date(run.createdAt).toLocaleString()}</p>
+      ${run.error ? `<p class="failed">Error: ${escapeHtml(run.error)}</p>` : ""}
+    </div>
+    <div class="mini-card">
+      <div class="row space"><h3>Extracted result</h3><span class="badge">${subjects.length || Object.keys(result).length} fields</span></div>
+      ${subjects.length ? renderSubjects(subjects) : `<pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>`}
+    </div>
+    <div class="mini-card">
+      <div class="row space"><h3>Step log</h3><span class="badge">${(run.stepLog || []).length} steps</span></div>
+      ${renderSteps(run.stepLog || [])}
+    </div>`;
 }
 
 function renderSubjects(subjects) {
   if (subjects.length === 0) {
-    return '<p class="muted">No subjects found.</p>';
+    return '<p class="empty">No structured rows found.</p>';
   }
 
   return '<table><thead><tr><th>Subject</th><th>Attended</th><th>Total</th><th>%</th></tr></thead><tbody>' +
@@ -418,7 +510,7 @@ function renderSubjects(subjects) {
 
 function renderSteps(steps) {
   if (steps.length === 0) {
-    return '<p class="muted">No step logs yet.</p>';
+    return '<p class="empty">No step logs yet.</p>';
   }
 
   return '<table><thead><tr><th>Step</th><th>Type</th><th>Status</th><th>Time</th></tr></thead><tbody>' +
@@ -451,7 +543,7 @@ function setBusy(isBusy) {
 function setStatus(message, isError = false) {
   els.status.textContent = message;
   els.status.className = isError ? "failed" : "muted";
-  els.statusMetric.textContent = isError ? "Failed" : message.startsWith("Run completed") ? "Success" : "Running";
+  els.statusMetric.textContent = isError ? "Failed" : message.startsWith("Run completed") ? "Success" : message.includes("Refreshing") ? "Running" : "Ready";
 }
 
 function setWorkflowStatus(message, isError = false) {

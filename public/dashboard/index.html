@@ -9,320 +9,250 @@
 <body>
   <div class="shell">
     <nav class="topbar">
-      <div class="brand">
-        <img class="brand-logo" src="/assets/ghostapi-logo.svg" alt="GhostAPI logo" />
+      <a class="brand" href="/dashboard" aria-label="GhostAPI dashboard">
+        <img class="brand-logo" src="/assets/ghostapi-logo.svg" alt="" />
         <span>GhostAPI</span>
-      </div>
+      </a>
       <div class="nav">
-        <a href="/dashboard">Overview</a>
-        <a href="/v1/actions/get-attendance/workflow">Workflow</a>
-        <a href="/v1/runs">Run History</a>
-        <a href="/capture/bookmarklet.js">Recorder</a>
-        <span class="pill">Local prototype</span>
+        <a href="#start">Start</a>
+        <a href="#workflows">Workflows</a>
+        <a href="#runs">Runs</a>
+        <a href="/health" target="_blank" rel="noreferrer">Health</a>
       </div>
     </nav>
 
-    <section class="hero">
-      <div>
-        <p class="eyebrow">GhostAPI automation console</p>
-        <h1>APIs for websites that never had one.</h1>
-        <p class="hero-copy">Run browser workflows, inspect every execution step, and convert portal screens into structured JSON your apps, agents, and automations can trust.</p>
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Browser workflows into APIs</p>
+        <h1>Build APIs from any website.</h1>
+        <p>Capture a task in your browser, turn it into a reusable endpoint, and run it from apps, scripts, dashboards, or agents.</p>
         <div class="hero-actions">
-          <button id="heroRunButton" class="blue">Run attendance now</button>
-          <button id="heroRefreshButton" class="secondary">Refresh run history</button>
+          <a class="button primary" href="#start">Start capturing</a>
+          <button id="heroRefreshButton" class="button secondary">Refresh status</button>
         </div>
       </div>
-
-      <div class="visual" aria-hidden="true">
-        <img class="hero-logo" src="/assets/ghostapi-logo.svg" alt="" />
-      </div>
-    </section>
-
-    <section class="stats">
-      <div class="stat">
-        <div class="label">Runs stored</div>
-        <div id="runsMetric" class="value">0</div>
-      </div>
-      <div class="stat purple-card">
-        <div class="label">Workflow steps</div>
-        <div id="stepsMetric" class="value">10</div>
-      </div>
-      <div class="stat yellow-card">
-        <div class="label">Latest status</div>
-        <div id="statusMetric" class="value status-value">Ready</div>
-      </div>
-      <div class="stat green-card">
-        <div class="label">Active portal</div>
-        <div class="value portal-value">College</div>
-      </div>
-    </section>
-
-    <section class="setup-panel">
-      <div class="row space">
-        <div>
-          <p class="eyebrow mini-eyebrow">Setup commands</p>
-          <h2>Run GhostAPI and install the extension</h2>
+      <div class="api-card">
+        <div class="api-card-header">
+          <span class="status-dot"></span>
+          <span id="serviceStatus">Checking deployment</span>
         </div>
-        <button class="secondary" id="copyAllCommandsButton">Copy all commands</button>
-      </div>
-      <div class="command-grid">
-        <div class="command-card">
-          <span class="pill">1</span>
-          <h3>Install project</h3>
-          <pre><code>npm install
-npx playwright install chromium</code></pre>
-          <button class="secondary copy-command" data-command="npm install&#10;npx playwright install chromium">Copy</button>
-        </div>
-        <div class="command-card">
-          <span class="pill">2</span>
-          <h3>Start GhostAPI</h3>
-          <pre><code>npm start</code></pre>
-          <button class="secondary copy-command" data-command="npm start">Copy</button>
-        </div>
-        <div class="command-card">
-          <span class="pill">3</span>
-          <h3>Load extension</h3>
-          <pre><code>chrome://extensions
-Load unpacked → extensions/chrome</code></pre>
-          <button class="secondary copy-command" data-command="extensions/chrome">Copy path</button>
-        </div>
-        <div class="command-card">
-          <span class="pill">4</span>
-          <h3>Package for users</h3>
-          <pre><code>npm run package:extension</code></pre>
-          <button class="secondary copy-command" data-command="npm run package:extension">Copy</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="setup-panel cloud-panel">
-      <div class="row space">
-        <div>
-          <p class="eyebrow mini-eyebrow">Week 11 cloud foundation</p>
-          <h2>Multi-user ready backend shape</h2>
-        </div>
-        <a class="pill" href="/v1/cloud/plan" target="_blank" rel="noreferrer">View cloud plan API</a>
-      </div>
-      <div class="command-grid">
-        <div class="command-card green-card">
-          <span class="pill">done</span>
-          <h3>Default workspace</h3>
-          <p>Local runs now belong to a default user and organization, matching the future hosted model.</p>
-        </div>
-        <div class="command-card green-card">
-          <span class="pill">done</span>
-          <h3>Scoped storage</h3>
-          <p>Workflows, versions, runs, and API keys now carry ownership columns for user isolation.</p>
-        </div>
-        <div class="command-card yellow-card">
-          <span class="pill">next</span>
-          <h3>Hosted auth</h3>
-          <p>Next step: real sign-in, organizations, encrypted credentials, and cloud browser workers.</p>
-        </div>
-        <div class="command-card">
-          <span class="pill">api</span>
-          <h3>Account context</h3>
-          <pre><code>GET /v1/me
-GET /v1/cloud/plan</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="setup-panel store-panel">
-      <div class="row space">
-        <div>
-          <p class="eyebrow mini-eyebrow">Week 12 extension readiness</p>
-          <h2>Chrome Web Store preparation</h2>
-        </div>
-        <button class="secondary copy-command" data-command="npm run test:extension&#10;npm run package:extension">Copy store checks</button>
-      </div>
-      <div class="command-grid">
-        <div class="command-card green-card">
-          <span class="pill">done</span>
-          <h3>Minimal permissions</h3>
-          <p>Extension uses activeTab, scripting, and storage. It avoids broad tabs and all-sites permissions.</p>
-        </div>
-        <div class="command-card green-card">
-          <span class="pill">done</span>
-          <h3>Privacy docs</h3>
-          <p>Privacy, permissions, and store listing drafts live in the extensions folder.</p>
-        </div>
-        <div class="command-card yellow-card">
-          <span class="pill">todo</span>
-          <h3>Store assets</h3>
-          <p>Before public launch, create final icons, screenshots, promo images, and a hosted privacy URL.</p>
-        </div>
-        <div class="command-card">
-          <span class="pill">ship</span>
-          <h3>Build package</h3>
-          <pre><code>npm run test:extension
-npm run package:extension</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="setup-panel deploy-panel">
-      <div class="row space">
-        <div>
-          <p class="eyebrow mini-eyebrow">Week 13 deployment target</p>
-          <h2>Deploy GhostAPI on Render first</h2>
-        </div>
-        <a class="pill" href="/v1/deployment/plan" target="_blank" rel="noreferrer">View deployment plan API</a>
-      </div>
-      <p>Render is the first production home for the GhostAPI API because it can run a long-lived Fastify server with Playwright browser automation. Supabase and Upstash are planned for the next cloud layer.</p>
-      <div class="command-grid">
-        <div class="command-card green-card">
-          <span class="pill">api</span>
-          <h3>Render</h3>
-          <p>Hosts the API, dashboard, static files, health endpoint, and Playwright runtime behind HTTPS.</p>
-        </div>
-        <div class="command-card yellow-card">
-          <span class="pill">database</span>
-          <h3>Supabase Postgres</h3>
-          <p>Future production database for users, organizations, workflows, versions, runs, and API keys.</p>
-        </div>
-        <div class="command-card purple-card">
-          <span class="pill">workers</span>
-          <h3>Upstash Redis</h3>
-          <p>Future queue and cache layer for cloud browser workers, rate limits, and async runs.</p>
-        </div>
-        <div class="command-card">
-          <span class="pill">verify</span>
-          <h3>Deployment checks</h3>
-          <pre><code>npm run check
-npm run test:deployment
-npm run test:extension</code></pre>
-          <button class="secondary copy-command" data-command="npm run check&#10;npm run test:deployment&#10;npm run test:extension">Copy checks</button>
-        </div>
-      </div>
-    </section>
-
-    <main>
-      <section class="stack">
-        <div class="panel">
-          <div class="row space">
-            <h2>Run action</h2>
-            <span class="pill">get-attendance</span>
+        <dl>
+          <div>
+            <dt>Public API URL</dt>
+            <dd id="publicApiUrl">Loading...</dd>
           </div>
-          <p>Use your local mock portal credentials, or leave both fields empty to use GhostAPI’s local demo config.</p>
-          <div class="stack">
-            <label>
-              Username
-              <input id="username" placeholder="Optional local username" autocomplete="username" />
-            </label>
-            <label>
-              Password
-              <input id="password" placeholder="Optional local password" type="password" autocomplete="current-password" />
-            </label>
-            <div class="row">
-              <button id="runButton">Run attendance</button>
-              <button class="secondary" id="refreshButton">Refresh runs</button>
+          <div>
+            <dt>Mode</dt>
+            <dd id="modeMetric">Loading</dd>
+          </div>
+          <div>
+            <dt>Provider</dt>
+            <dd id="providerMetric">Loading</dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <section class="metric-grid" aria-label="GhostAPI status">
+      <article class="metric">
+        <span>Recorded workflows</span>
+        <strong id="workflowsMetric">0</strong>
+      </article>
+      <article class="metric">
+        <span>Stored runs</span>
+        <strong id="runsMetric">0</strong>
+      </article>
+      <article class="metric">
+        <span>Workflow steps</span>
+        <strong id="stepsMetric">0</strong>
+      </article>
+      <article class="metric">
+        <span>Latest run</span>
+        <strong id="statusMetric">Ready</strong>
+      </article>
+    </section>
+
+    <main class="dashboard-grid">
+      <section id="start" class="panel span-2">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Onboarding</p>
+            <h2>Start capturing</h2>
+          </div>
+          <span class="badge">Recommended path</span>
+        </div>
+        <div class="onboarding-grid">
+          <article class="step-card">
+            <span class="step-number">1</span>
+            <h3>Install the recorder</h3>
+            <p>Load the Chrome extension locally, then pin GhostAPI Capture in your browser toolbar.</p>
+            <div class="inline-action">
+              <code>extensions/chrome</code>
+              <button id="copyExtensionPathButton" class="button secondary">Copy path</button>
             </div>
-            <div class="status-strip">
-              <span class="dot"></span>
-              <span id="status" class="muted">Ready.</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel recorder-panel">
-          <div class="row space">
-            <h2>Browser extension</h2>
-            <span class="pill">recommended</span>
-          </div>
-          <p>Use the Chrome/Edge extension to open the GhostAPI recorder directly on Google, Instagram, portals, and other websites.</p>
-          <div class="extension-install-card">
-            <code>extensions/chrome</code>
-            <button id="copyExtensionPathButton" class="blue">Copy extension path</button>
-          </div>
-          <div class="install-guide">
-            <strong>Install extension locally:</strong>
-            <ol>
-              <li>Open <code>chrome://extensions</code> or <code>edge://extensions</code>.</li>
-              <li>Enable <code>Developer mode</code>.</li>
-              <li>Click <code>Load unpacked</code>.</li>
-              <li>Select the project folder <code>extensions/chrome</code>.</li>
-              <li>Pin <code>👻 GhostAPI Capture</code>, open any website, and click the extension.</li>
-            </ol>
-          </div>
-          <p class="muted tiny">The extension is now the main production path. The bookmarklet fallback is still available below for quick experiments.</p>
-        </div>
-
-        <div class="panel recorder-panel">
-          <div class="row space">
-            <h2>Bookmark fallback</h2>
-            <span class="pill">quick prototype</span>
-          </div>
-          <p>If you do not want to load the extension, you can still install the bookmarklet fallback.</p>
-          <div class="row">
-            <button id="installBookmarkletButton" class="blue">Install bookmark</button>
-            <button class="secondary" id="copyBookmarkletButton">Copy bookmarklet</button>
-            <a class="pill" href="/capture/bookmarklet.js" target="_blank" rel="noreferrer">View script</a>
-          </div>
-          <div id="bookmarkInstallGuide" class="install-guide" hidden>
-            <strong>Bookmark copied. Save it like this:</strong>
-            <ol>
-              <li>Press <kbd>⌘</kbd> + <kbd>D</kbd> on Mac or <kbd>Ctrl</kbd> + <kbd>D</kbd> on Windows/Linux.</li>
-              <li>Name it <code>👻 GhostAPI Capture</code>.</li>
-              <li>Click <code>Edit</code> or <code>More</code>, then paste the copied code into the URL field.</li>
-              <li>Save it to your bookmarks bar. You will now see it as a normal bookmark.</li>
-            </ol>
-          </div>
-          <a id="bookmarkletLink" class="bookmarklet-button" href="#">👻 GhostAPI Capture</a>
-          <p class="muted tiny">Some sites use strict browser security rules. If the bookmarklet is blocked, use the GhostAPI extension above.</p>
-          <textarea id="bookmarkletCode" class="bookmarklet-code" readonly></textarea>
-        </div>
-
-        <div class="panel">
-          <div class="row space">
-            <h2>Recent runs</h2>
-            <span id="runCount" class="pill">0 runs</span>
-          </div>
-          <div id="runs" class="run-list"></div>
-          <div class="row space pager">
-            <button class="secondary" id="prevRunsButton">Previous</button>
-            <span id="runPageStatus" class="muted tiny">Page 1</span>
-            <button class="secondary" id="nextRunsButton">Next</button>
-          </div>
+          </article>
+          <article class="step-card">
+            <span class="step-number">2</span>
+            <h3>Capture a website task</h3>
+            <p>Open a portal, dashboard, or search page. Record the clicks, inputs, and extraction you want GhostAPI to repeat.</p>
+            <a id="bookmarkletLink" class="button secondary" href="#">Bookmarklet fallback</a>
+          </article>
+          <article class="step-card">
+            <span class="step-number">3</span>
+            <h3>Run it as an API</h3>
+            <p>Save the workflow, call the endpoint, and inspect results, screenshots, and step logs from this dashboard.</p>
+            <button id="heroRunButton" class="button primary">Run demo workflow</button>
+          </article>
         </div>
       </section>
 
-      <section class="stack">
-        <div class="panel">
-          <div class="row space">
-            <h2>Selected run</h2>
-            <span id="selectedRunStatus" class="pill">none</span>
-          </div>
-          <div id="selectedRun" class="stack">
-            <p class="muted">Select a run, or click “Run attendance”.</p>
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Chrome extension</p>
+            <h2>Recorder setup</h2>
           </div>
         </div>
+        <ol class="setup-list">
+          <li>Open <code>chrome://extensions</code>.</li>
+          <li>Enable <code>Developer mode</code>.</li>
+          <li>Choose <code>Load unpacked</code>.</li>
+          <li>Select <code>extensions/chrome</code>.</li>
+        </ol>
+        <button class="button secondary copy-command" data-command="npm run package:extension">Copy package command</button>
+      </section>
 
-        <div class="panel">
-          <div class="row space">
-            <h2>Workflow editor</h2>
-            <div class="row">
-              <button class="secondary" id="loadWorkflowButton">Reload</button>
-              <button id="saveWorkflowButton">Save workflow</button>
-            </div>
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Access</p>
+            <h2>API key status</h2>
           </div>
-          <p>Edit the persisted workflow JSON. GhostAPI validates step IDs, output fields, and supported step types before saving.</p>
-          <div class="version-toolbar">
-            <label>
-              Version
-              <select id="workflowVersionSelect"></select>
-            </label>
-            <button class="secondary" id="loadVersionButton">Load version</button>
-            <button class="secondary" id="restoreVersionButton">Restore version</button>
-            <button class="secondary" id="diffVersionButton">Diff current</button>
-          </div>
-          <textarea id="workflowJson" class="workflow-editor" spellcheck="false">Click “Reload”.</textarea>
-          <div class="status-strip workflow-status">
-            <span class="dot"></span>
-            <span id="workflowStatus" class="muted">Workflow editor ready.</span>
-          </div>
-          <pre id="workflowDiff" class="workflow-diff">Workflow diff output will appear here.</pre>
+          <span id="apiKeyBadge" class="badge">Checking</span>
         </div>
+        <p id="apiKeySummary">Loading API key configuration...</p>
+        <pre><code id="apiExample">curl /v1/workflows</code></pre>
+      </section>
+
+      <section id="workflows" class="panel span-2">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Builder</p>
+            <h2>Workflow builder</h2>
+          </div>
+          <div class="button-row">
+            <button class="button secondary" id="loadWorkflowButton">Reload</button>
+            <button class="button primary" id="saveWorkflowButton">Save workflow</button>
+          </div>
+        </div>
+        <div id="workflowCards" class="workflow-cards"></div>
+        <div class="version-toolbar">
+          <label>
+            Version
+            <select id="workflowVersionSelect"></select>
+          </label>
+          <button class="button secondary" id="loadVersionButton">Load</button>
+          <button class="button secondary" id="restoreVersionButton">Restore</button>
+          <button class="button secondary" id="diffVersionButton">Diff</button>
+        </div>
+        <textarea id="workflowJson" class="workflow-editor" spellcheck="false">Loading workflow...</textarea>
+        <div class="status-strip">
+          <span class="status-dot"></span>
+          <span id="workflowStatus">Workflow editor ready.</span>
+        </div>
+        <pre id="workflowDiff" class="workflow-diff">Workflow diff output will appear here.</pre>
+      </section>
+
+      <section id="runs" class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Automation</p>
+            <h2>Run history</h2>
+          </div>
+          <span id="runCount" class="badge">0 runs</span>
+        </div>
+        <div class="run-controls">
+          <label>
+            Username
+            <input id="username" placeholder="Optional demo username" autocomplete="username" />
+          </label>
+          <label>
+            Password
+            <input id="password" placeholder="Optional demo password" type="password" autocomplete="current-password" />
+          </label>
+          <div class="button-row">
+            <button id="runButton" class="button primary">Run demo workflow</button>
+            <button class="button secondary" id="refreshButton">Refresh</button>
+          </div>
+        </div>
+        <div class="status-strip">
+          <span class="status-dot"></span>
+          <span id="status">Ready.</span>
+        </div>
+        <div id="runsList" class="run-list"></div>
+        <div class="pager">
+          <button class="button secondary" id="prevRunsButton">Previous</button>
+          <span id="runPageStatus">No runs</span>
+          <button class="button secondary" id="nextRunsButton">Next</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Selected run</p>
+            <h2>Result details</h2>
+          </div>
+          <span id="selectedRunStatus" class="badge">none</span>
+        </div>
+        <div id="selectedRun" class="stack">
+          <p class="empty">No run selected yet. Start with the demo workflow or refresh existing runs.</p>
+        </div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Cloud health</p>
+            <h2>Deployment and environment</h2>
+          </div>
+          <a class="button secondary" href="/v1/deployment/plan" target="_blank" rel="noreferrer">Open plan API</a>
+        </div>
+        <div id="deploymentCards" class="deployment-grid"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Commands</p>
+            <h2>Local and deployed use</h2>
+          </div>
+          <button class="button secondary" id="copyAllCommandsButton">Copy commands</button>
+        </div>
+        <div class="command-grid">
+          <article>
+            <h3>Local setup</h3>
+            <pre><code>npm install
+npx playwright install chromium
+npm start</code></pre>
+          </article>
+          <article>
+            <h3>Verify before deploy</h3>
+            <pre><code>npm run check
+npm run test:dashboard
+npm run test:cloud
+npm run test:deployment</code></pre>
+          </article>
+          <article>
+            <h3>Call the API</h3>
+            <pre><code id="curlExample">curl /health
+curl /v1/workflows</code></pre>
+          </article>
+        </div>
+        <textarea id="bookmarkletCode" class="sr-only" readonly></textarea>
+        <button id="copyBookmarkletButton" class="sr-only">Copy bookmarklet</button>
+        <button id="installBookmarkletButton" class="sr-only">Install bookmark</button>
+        <div id="bookmarkInstallGuide" hidden></div>
       </section>
     </main>
   </div>
