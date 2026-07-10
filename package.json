@@ -17,11 +17,14 @@
     "test:extension": "tsx src/scripts/test-extension.ts",
     "test:cloud": "tsx src/scripts/test-cloud.ts",
     "test:deployment": "tsx src/scripts/test-deployment.ts",
-    "package:extension": "node src/scripts/package-extension.mjs"
+    "package:extension": "node src/scripts/package-extension.mjs",
+    "migrate:postgres": "tsx src/scripts/migrate-sqlite-to-postgres.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.55.0",
+    "@types/pg": "^8.20.0",
     "fastify": "^4.28.1",
+    "pg": "^8.22.0",
     "playwright": "^1.55.0",
     "tsx": "^4.19.2",
     "zod": "^3.23.8"

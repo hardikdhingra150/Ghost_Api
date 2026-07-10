@@ -1,7 +1,7 @@
 import { config } from "../config.js";
 import type { StoredWorkflowRun } from "../workflows/workflowTypes.js";
 import { defaultTenantContext, type GhostApiTenantContext } from "./accountRepository.js";
-import { getDatabase } from "./database.js";
+import { activeStorageDriver, dbAll, dbGet, dbRun } from "./database.js";
 import { readJsonFile } from "./jsonFile.js";
 
 type RunsFile = {
@@ -10,7 +10,7 @@ type RunsFile = {
 
 export async function createRun(run: StoredWorkflowRun): Promise<StoredWorkflowRun> {
   await migrateLegacyRunsIfNeeded();
-  insertOrReplaceRun(run);
+  await insertOrReplaceRun(run);
   return run;
 }
 
@@ -28,7 +28,7 @@ export async function updateRun(runId: string, patch: Partial<StoredWorkflowRun>
     updatedAt: new Date().toISOString()
   };
 
-  insertOrReplaceRun(updatedRun);
+  await insertOrReplaceRun(updatedRun);
   return updatedRun;
 }
 
@@ -47,16 +47,18 @@ export async function listRuns(
   await migrateLegacyRunsIfNeeded();
   const normalizedLimit = Math.min(Math.max(limit, 1), 100);
   const normalizedOffset = Math.max(offset, 0);
-  const totalRow = getDatabase()
-    .prepare("SELECT COUNT(*) as count FROM runs WHERE owner_user_id = ?")
-    .get(context.userId) as { count: number };
-  const rows = getDatabase()
-    .prepare("SELECT * FROM runs WHERE owner_user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
-    .all(context.userId, normalizedLimit, normalizedOffset) as RunRow[];
+  const totalRow = await dbGet<{ count: number | string }>("SELECT COUNT(*) as count FROM runs WHERE owner_user_id = ?", [
+    context.userId
+  ]);
+  const rows = await dbAll<RunRow>("SELECT * FROM runs WHERE owner_user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?", [
+    context.userId,
+    normalizedLimit,
+    normalizedOffset
+  ]);
 
   return {
     runs: rows.map(rowToRun),
-    total: totalRow.count,
+    total: Number(totalRow?.count ?? 0),
     limit: normalizedLimit,
     offset: normalizedOffset
   };
@@ -67,9 +69,7 @@ export async function getRun(
   context: GhostApiTenantContext = defaultTenantContext
 ): Promise<StoredWorkflowRun | null> {
   await migrateLegacyRunsIfNeeded();
-  const row = getDatabase()
-    .prepare("SELECT * FROM runs WHERE id = ? AND owner_user_id = ?")
-    .get(runId, context.userId) as RunRow | undefined;
+  const row = await dbGet<RunRow>("SELECT * FROM runs WHERE id = ? AND owner_user_id = ?", [runId, context.userId]);
   return row ? rowToRun(row) : null;
 }
 
@@ -86,23 +86,22 @@ async function migrateLegacyRunsIfNeeded(): Promise<void> {
 
   legacyRunsMigrated = true;
 
-  const countRow = getDatabase().prepare("SELECT COUNT(*) as count FROM runs").get() as { count: number };
+  const countRow = await dbGet<{ count: number | string }>("SELECT COUNT(*) as count FROM runs");
 
-  if (countRow.count > 0) {
+  if (Number(countRow?.count ?? 0) > 0) {
     return;
   }
 
   const legacyRuns = await readRunsFile();
 
   for (const run of legacyRuns.runs.reverse()) {
-    insertOrReplaceRun(run);
+    await insertOrReplaceRun(run);
   }
 }
 
-function insertOrReplaceRun(run: StoredWorkflowRun): void {
-  getDatabase()
-    .prepare(
-      `INSERT OR REPLACE INTO runs (
+async function insertOrReplaceRun(run: StoredWorkflowRun): Promise<void> {
+  const insertSql = activeStorageDriver() === "postgres"
+    ? `INSERT INTO runs (
         id,
         owner_user_id,
         organization_id,
@@ -117,24 +116,54 @@ function insertOrReplaceRun(run: StoredWorkflowRun): void {
         result_json,
         error,
         step_log_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      run.id,
-      run.ownerUserId ?? defaultTenantContext.userId,
-      run.organizationId ?? defaultTenantContext.organizationId,
-      run.actionId,
-      run.workflowId,
-      run.workflowVersion,
-      run.portal,
-      run.status,
-      run.createdAt,
-      run.updatedAt,
-      JSON.stringify(run.input),
-      run.result === undefined ? null : JSON.stringify(run.result),
-      run.error ?? null,
-      JSON.stringify(run.stepLog)
-    );
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (id) DO UPDATE SET
+        owner_user_id = EXCLUDED.owner_user_id,
+        organization_id = EXCLUDED.organization_id,
+        action_id = EXCLUDED.action_id,
+        workflow_id = EXCLUDED.workflow_id,
+        workflow_version = EXCLUDED.workflow_version,
+        portal = EXCLUDED.portal,
+        status = EXCLUDED.status,
+        created_at = EXCLUDED.created_at,
+        updated_at = EXCLUDED.updated_at,
+        input_json = EXCLUDED.input_json,
+        result_json = EXCLUDED.result_json,
+        error = EXCLUDED.error,
+        step_log_json = EXCLUDED.step_log_json`
+    : `INSERT OR REPLACE INTO runs (
+        id,
+        owner_user_id,
+        organization_id,
+        action_id,
+        workflow_id,
+        workflow_version,
+        portal,
+        status,
+        created_at,
+        updated_at,
+        input_json,
+        result_json,
+        error,
+        step_log_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  await dbRun(insertSql, [
+    run.id,
+    run.ownerUserId ?? defaultTenantContext.userId,
+    run.organizationId ?? defaultTenantContext.organizationId,
+    run.actionId,
+    run.workflowId,
+    run.workflowVersion,
+    run.portal,
+    run.status,
+    run.createdAt,
+    run.updatedAt,
+    JSON.stringify(run.input),
+    run.result === undefined ? null : JSON.stringify(run.result),
+    run.error ?? null,
+    JSON.stringify(run.stepLog)
+  ]);
 }
 
 type RunRow = {

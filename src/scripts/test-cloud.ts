@@ -19,6 +19,47 @@ if (!mePayload.account?.user?.id || !mePayload.account?.organization?.id) {
   throw new Error("Expected /v1/me to include user and organization ownership context");
 }
 
+const signupEmail = `cloud-test-${Date.now()}@ghostapi.dev`;
+const accountResponse = await fetch("http://127.0.0.1:4000/v1/accounts", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    email: signupEmail,
+    name: "Cloud Test User",
+    organizationName: "Cloud Test Workspace"
+  })
+});
+const accountPayload = (await accountResponse.json()) as {
+  ok?: boolean;
+  account?: {
+    user?: {
+      id?: string;
+      email?: string;
+    };
+    organization?: {
+      id?: string;
+    };
+  };
+  apiKey?: {
+    key?: string;
+  };
+};
+
+if (!accountResponse.ok || !accountPayload.ok || !accountPayload.apiKey?.key) {
+  throw new Error("Expected /v1/accounts to create a tenant account and API key");
+}
+
+const scopedMeResponse = await fetch("http://127.0.0.1:4000/v1/me", {
+  headers: {
+    "x-ghostapi-key": accountPayload.apiKey.key
+  }
+});
+const scopedMePayload = (await scopedMeResponse.json()) as typeof mePayload;
+
+if (scopedMePayload.account?.user?.id !== accountPayload.account?.user?.id) {
+  throw new Error("Expected x-ghostapi-key to resolve the API key owner workspace");
+}
+
 const planResponse = await fetch("http://127.0.0.1:4000/v1/cloud/plan");
 const planPayload = (await planResponse.json()) as {
   ok?: boolean;
@@ -30,6 +71,8 @@ const planPayload = (await planResponse.json()) as {
     postgresEnvironmentConfigured?: boolean;
     postgresDriverSelected?: boolean;
     productionDatabaseMigration?: boolean;
+    apiKeyTenantIsolation?: boolean;
+    accountBootstrapApi?: boolean;
   };
 };
 
@@ -41,8 +84,12 @@ if (!planPayload.readiness?.tenantScopedStorage || !planPayload.readiness?.local
   throw new Error("Expected cloud readiness to include tenant-scoped local workspace");
 }
 
-if (planPayload.currentPhase !== "Week 14" || !planPayload.readiness?.renderDeploymentConfig) {
-  throw new Error("Expected cloud readiness to include Week 14 database readiness after Render deployment");
+if (planPayload.currentPhase !== "Production database readiness" || !planPayload.readiness?.renderDeploymentConfig) {
+  throw new Error("Expected cloud readiness to include production database readiness after Render deployment");
+}
+
+if (!planPayload.readiness?.apiKeyTenantIsolation || !planPayload.readiness?.accountBootstrapApi) {
+  throw new Error("Expected cloud readiness to include account bootstrap and API-key tenant isolation");
 }
 
 const deploymentResponse = await fetch("http://127.0.0.1:4000/v1/deployment/plan");
@@ -76,20 +123,20 @@ const databasePayload = (await databaseResponse.json()) as {
   postgres?: {
     connectionStringConfigured?: boolean;
   };
-  week14?: {
+  production?: {
     safeEnvironment?: string[];
   };
 };
 
 if (!databaseResponse.ok || !databasePayload.ok) {
-  throw new Error("Expected /v1/database/plan to return Week 14 database readiness");
+  throw new Error("Expected /v1/database/plan to return production database readiness");
 }
 
 if (!databasePayload.currentDriver || !databasePayload.activeStore) {
   throw new Error("Expected database plan to include current driver and active store");
 }
 
-if (!databasePayload.week14?.safeEnvironment?.includes("DATABASE_URL=<Render Postgres connection string>")) {
+if (!databasePayload.production?.safeEnvironment?.includes("DATABASE_URL=<Render Postgres connection string>")) {
   throw new Error("Expected database plan to include safe DATABASE_URL placeholder");
 }
 
@@ -99,6 +146,7 @@ console.log(
       ok: true,
       userId: mePayload.account.user.id,
       organizationId: mePayload.account.organization.id,
+      createdTenantUserId: accountPayload.account?.user?.id,
       readiness: planPayload.readiness,
       deployment: deploymentPayload,
       database: databasePayload

@@ -23,18 +23,17 @@ Website UI
 - Chrome/Edge extension recorder for creating APIs directly from websites
 - Chrome Web Store readiness docs for the extension
 - Render deployment blueprint for the API/dashboard
-- Bookmarklet fallback for quick experiments
 - Workflow JSON format
 - Generic workflow runner
 - Mock college portal for safe local testing
 - Attendance extraction demo
 - Generic `portal-summary` workflow
 - Experimental `google-search` workflow
-- SQLite persistence for workflows, versions, API keys, and runs
+- SQLite local persistence and Postgres production persistence
 - Run history with step logs
 - Failure screenshot artifact route
 - Workflow version list, restore, and diff APIs
-- API key records hashed in SQLite
+- API key records hashed in storage
 - Production-style dashboard with GhostAPI branding
 - Static dashboard assets in `public/dashboard`
 
@@ -45,6 +44,7 @@ Website UI
 - Fastify
 - Playwright
 - SQLite via Node’s built-in `node:sqlite`
+- Postgres via `pg`
 - Zod
 - HTML, CSS, vanilla browser JavaScript
 - Render for the first production API deploy
@@ -171,7 +171,7 @@ Still needed before public Chrome Web Store launch:
 
 GhostAPI should deploy first on Render.
 
-Why Render first: GhostAPI is a long-running Fastify API with Playwright browser automation. Render can run it as a Docker web service behind HTTPS. Supabase Postgres and Upstash Redis are planned next, but they are not required for the first deploy-ready build.
+Why Render first: GhostAPI is a long-running Fastify API with Playwright browser automation. Render can run it as a Docker web service behind HTTPS. Postgres is the production persistence layer for users, organizations, workflows, runs, and API keys. Upstash Redis is still a later queue layer for background browser workers.
 
 Deployment files:
 
@@ -190,6 +190,7 @@ npm run check
 npm run test:deployment
 npm run test:extension
 npm run package:extension
+npm run migrate:postgres
 ```
 
 Deployment plan API:
@@ -198,9 +199,9 @@ Deployment plan API:
 curl http://127.0.0.1:4000/v1/deployment/plan
 ```
 
-## Week 14 database readiness
+## Production database
 
-GhostAPI now exposes a safe database readiness plan for the SQLite-to-Postgres migration path.
+GhostAPI supports local SQLite for development and Postgres for production SaaS persistence.
 
 ```bash
 curl http://127.0.0.1:4000/v1/database/plan
@@ -213,11 +214,21 @@ GHOSTAPI_DATABASE_DRIVER=postgres
 DATABASE_URL=<Render Postgres connection string>
 ```
 
+If you already have local SQLite data to preserve, run this once from a trusted machine with `DATABASE_URL` set:
+
+```bash
+npm run migrate:postgres
+```
+
 Details live in `docs/week14-database.md`.
 
-## Bookmarklet fallback
+## Chrome extension
 
-The dashboard still includes a bookmarklet fallback for quick experiments. Use it only if you do not want to load the extension.
+The production capture path is the Chrome extension. The dashboard serves the latest package at:
+
+```txt
+/extension/ghostapi-capture.zip
+```
 
 Health check:
 
@@ -235,6 +246,7 @@ npm run test:generic
 npm run test:extension
 npm run test:cloud
 npm run test:deployment
+npm run migrate:postgres
 ```
 
 ## Main API routes

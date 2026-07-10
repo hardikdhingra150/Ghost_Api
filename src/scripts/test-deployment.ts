@@ -26,6 +26,10 @@ if (packageJson.scripts?.["test:deployment"] !== "tsx src/scripts/test-deploymen
   throw new Error("package.json missing test:deployment script");
 }
 
+if (packageJson.scripts?.["migrate:postgres"] !== "tsx src/scripts/migrate-sqlite-to-postgres.ts") {
+  throw new Error("package.json missing migrate:postgres script");
+}
+
 const dockerfile = readRequiredFile("Dockerfile");
 const dockerignore = readRequiredFile(".dockerignore");
 const renderYaml = readRequiredFile("render.yaml");

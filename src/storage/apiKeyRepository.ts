@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { defaultTenantContext, type GhostApiTenantContext } from "./accountRepository.js";
-import { getDatabase } from "./database.js";
+import { dbAll, dbGet, dbRun } from "./database.js";
 
 export type StoredApiKey = {
   id: string;
@@ -27,10 +27,10 @@ type ApiKeyRow = {
   revoked_at: string | null;
 };
 
-export function createApiKey(
+export async function createApiKey(
   name: string,
   context: GhostApiTenantContext = defaultTenantContext
-): CreatedApiKey {
+): Promise<CreatedApiKey> {
   const key = `gapi_${crypto.randomBytes(24).toString("base64url")}`;
   const now = new Date().toISOString();
   const storedKey: StoredApiKey = {
@@ -42,12 +42,10 @@ export function createApiKey(
     createdAt: now
   };
 
-  getDatabase()
-    .prepare(
-      `INSERT INTO api_keys (id, owner_user_id, organization_id, name, key_hash, key_preview, created_at, revoked_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`
-    )
-    .run(
+  await dbRun(
+    `INSERT INTO api_keys (id, owner_user_id, organization_id, name, key_hash, key_preview, created_at, revoked_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [
       storedKey.id,
       storedKey.ownerUserId,
       storedKey.organizationId,
@@ -55,7 +53,8 @@ export function createApiKey(
       hashKey(key),
       storedKey.keyPreview,
       storedKey.createdAt
-    );
+    ]
+  );
 
   return {
     ...storedKey,
@@ -63,35 +62,57 @@ export function createApiKey(
   };
 }
 
-export function listApiKeys(context: GhostApiTenantContext = defaultTenantContext): StoredApiKey[] {
-  const rows = getDatabase()
-    .prepare("SELECT * FROM api_keys WHERE owner_user_id = ? ORDER BY created_at DESC")
-    .all(context.userId) as ApiKeyRow[];
+export async function listApiKeys(context: GhostApiTenantContext = defaultTenantContext): Promise<StoredApiKey[]> {
+  const rows = await dbAll<ApiKeyRow>("SELECT * FROM api_keys WHERE owner_user_id = ? ORDER BY created_at DESC", [
+    context.userId
+  ]);
 
   return rows.map(rowToApiKey);
 }
 
-export function hasActiveApiKeys(context: GhostApiTenantContext = defaultTenantContext): boolean {
-  const row = getDatabase()
-    .prepare("SELECT COUNT(*) as count FROM api_keys WHERE revoked_at IS NULL AND owner_user_id = ?")
-    .get(context.userId) as { count: number };
+export async function hasActiveApiKeys(context: GhostApiTenantContext = defaultTenantContext): Promise<boolean> {
+  const row = await dbGet<{ count: number | string }>(
+    "SELECT COUNT(*) as count FROM api_keys WHERE revoked_at IS NULL AND owner_user_id = ?",
+    [context.userId]
+  );
 
-  return row.count > 0;
+  return Number(row?.count ?? 0) > 0;
 }
 
-export function verifyStoredApiKey(key: string, context: GhostApiTenantContext = defaultTenantContext): boolean {
-  const row = getDatabase()
-    .prepare("SELECT id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL AND owner_user_id = ?")
-    .get(hashKey(key), context.userId) as { id: string } | undefined;
+export async function verifyStoredApiKey(
+  key: string,
+  context: GhostApiTenantContext = defaultTenantContext
+): Promise<boolean> {
+  const row = await dbGet<{ id: string }>(
+    "SELECT id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL AND owner_user_id = ?",
+    [hashKey(key), context.userId]
+  );
 
   return Boolean(row);
 }
 
-export function revokeApiKey(
+export async function tenantContextForApiKey(key: string): Promise<GhostApiTenantContext | null> {
+  const row = await dbGet<{
+    owner_user_id: string;
+    organization_id: string;
+  }>("SELECT owner_user_id, organization_id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL", [hashKey(key)]);
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    userId: row.owner_user_id,
+    organizationId: row.organization_id,
+    role: "owner"
+  };
+}
+
+export async function revokeApiKey(
   apiKeyId: string,
   context: GhostApiTenantContext = defaultTenantContext
-): StoredApiKey | null {
-  const existing = getApiKey(apiKeyId, context);
+): Promise<StoredApiKey | null> {
+  const existing = await getApiKey(apiKeyId, context);
 
   if (!existing) {
     return null;
@@ -99,9 +120,11 @@ export function revokeApiKey(
 
   const revokedAt = new Date().toISOString();
 
-  getDatabase()
-    .prepare("UPDATE api_keys SET revoked_at = ? WHERE id = ? AND owner_user_id = ?")
-    .run(revokedAt, apiKeyId, context.userId);
+  await dbRun("UPDATE api_keys SET revoked_at = ? WHERE id = ? AND owner_user_id = ?", [
+    revokedAt,
+    apiKeyId,
+    context.userId
+  ]);
 
   return {
     ...existing,
@@ -109,10 +132,11 @@ export function revokeApiKey(
   };
 }
 
-function getApiKey(apiKeyId: string, context: GhostApiTenantContext): StoredApiKey | null {
-  const row = getDatabase()
-    .prepare("SELECT * FROM api_keys WHERE id = ? AND owner_user_id = ?")
-    .get(apiKeyId, context.userId) as ApiKeyRow | undefined;
+async function getApiKey(apiKeyId: string, context: GhostApiTenantContext): Promise<StoredApiKey | null> {
+  const row = await dbGet<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ? AND owner_user_id = ?", [
+    apiKeyId,
+    context.userId
+  ]);
 
   return row ? rowToApiKey(row) : null;
 }

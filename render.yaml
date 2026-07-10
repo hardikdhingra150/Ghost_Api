@@ -19,7 +19,7 @@ services:
       - key: GHOSTAPI_REQUIRE_API_KEY
         value: "false"
       - key: GHOSTAPI_DATABASE_DRIVER
-        value: sqlite
+        value: postgres
       - key: DATABASE_URL
         sync: false
       - key: GHOSTAPI_API_KEY

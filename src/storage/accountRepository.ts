@@ -1,5 +1,6 @@
+import crypto from "node:crypto";
 import { config } from "../config.js";
-import { getDatabase } from "./database.js";
+import { activeStorageDriver, dbGet, dbRun, dbTransaction } from "./database.js";
 
 export type GhostApiTenantContext = {
   userId: string;
@@ -49,37 +50,54 @@ type MembershipRow = {
   created_at: string;
 };
 
-export function ensureDefaultAccount(): GhostApiAccount {
-  const db = getDatabase();
+export async function ensureDefaultAccount(): Promise<GhostApiAccount> {
   const now = new Date().toISOString();
 
-  db.prepare(
-    `INSERT OR IGNORE INTO users (id, email, name, created_at)
-     VALUES (?, ?, ?, ?)`
-  ).run(defaultTenantContext.userId, config.cloud.defaultUserEmail, "Local User", now);
-
-  db.prepare(
-    `INSERT OR IGNORE INTO organizations (id, name, created_at)
-     VALUES (?, ?, ?)`
-  ).run(defaultTenantContext.organizationId, config.cloud.defaultOrgName, now);
-
-  db.prepare(
-    `INSERT OR IGNORE INTO organization_members (organization_id, user_id, role, created_at)
-     VALUES (?, ?, ?, ?)`
-  ).run(defaultTenantContext.organizationId, defaultTenantContext.userId, defaultTenantContext.role, now);
+  await ensureAccount({
+    userId: defaultTenantContext.userId,
+    organizationId: defaultTenantContext.organizationId,
+    email: config.cloud.defaultUserEmail,
+    name: "Local User",
+    organizationName: config.cloud.defaultOrgName,
+    role: defaultTenantContext.role,
+    createdAt: now
+  });
 
   return getAccount(defaultTenantContext);
 }
 
-export function getAccount(context: GhostApiTenantContext = defaultTenantContext): GhostApiAccount {
-  const db = getDatabase();
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(context.userId) as UserRow | undefined;
-  const organization = db
-    .prepare("SELECT * FROM organizations WHERE id = ?")
-    .get(context.organizationId) as OrganizationRow | undefined;
-  const membership = db
-    .prepare("SELECT role, created_at FROM organization_members WHERE organization_id = ? AND user_id = ?")
-    .get(context.organizationId, context.userId) as MembershipRow | undefined;
+export async function createAccount(input: {
+  email: string;
+  name?: string;
+  organizationName?: string;
+}): Promise<GhostApiAccount> {
+  const now = new Date().toISOString();
+  const context: GhostApiTenantContext = {
+    userId: crypto.randomUUID(),
+    organizationId: crypto.randomUUID(),
+    role: "owner"
+  };
+
+  await ensureAccount({
+    userId: context.userId,
+    organizationId: context.organizationId,
+    email: input.email,
+    name: input.name || input.email.split("@")[0] || "GhostAPI User",
+    organizationName: input.organizationName || "GhostAPI Workspace",
+    role: context.role,
+    createdAt: now
+  });
+
+  return getAccount(context);
+}
+
+export async function getAccount(context: GhostApiTenantContext = defaultTenantContext): Promise<GhostApiAccount> {
+  const user = await dbGet<UserRow>("SELECT * FROM users WHERE id = ?", [context.userId]);
+  const organization = await dbGet<OrganizationRow>("SELECT * FROM organizations WHERE id = ?", [context.organizationId]);
+  const membership = await dbGet<MembershipRow>(
+    "SELECT role, created_at FROM organization_members WHERE organization_id = ? AND user_id = ?",
+    [context.organizationId, context.userId]
+  );
 
   if (!user || !organization || !membership) {
     throw new Error("GhostAPI account context was not initialized");
@@ -102,4 +120,39 @@ export function getAccount(context: GhostApiTenantContext = defaultTenantContext
       createdAt: membership.created_at
     }
   };
+}
+
+async function ensureAccount(input: {
+  userId: string;
+  organizationId: string;
+  email: string;
+  name: string;
+  organizationName: string;
+  role: GhostApiTenantContext["role"];
+  createdAt: string;
+}): Promise<void> {
+  const userInsert = activeStorageDriver() === "postgres"
+    ? `INSERT INTO users (id, email, name, created_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT (id) DO NOTHING`
+    : `INSERT OR IGNORE INTO users (id, email, name, created_at)
+       VALUES (?, ?, ?, ?)`;
+  const orgInsert = activeStorageDriver() === "postgres"
+    ? `INSERT INTO organizations (id, name, created_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (id) DO NOTHING`
+    : `INSERT OR IGNORE INTO organizations (id, name, created_at)
+       VALUES (?, ?, ?)`;
+  const memberInsert = activeStorageDriver() === "postgres"
+    ? `INSERT INTO organization_members (organization_id, user_id, role, created_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT (organization_id, user_id) DO NOTHING`
+    : `INSERT OR IGNORE INTO organization_members (organization_id, user_id, role, created_at)
+       VALUES (?, ?, ?, ?)`;
+
+  await dbTransaction([
+    () => dbRun(userInsert, [input.userId, input.email, input.name, input.createdAt]),
+    () => dbRun(orgInsert, [input.organizationId, input.organizationName, input.createdAt]),
+    () => dbRun(memberInsert, [input.organizationId, input.userId, input.role, input.createdAt])
+  ]);
 }

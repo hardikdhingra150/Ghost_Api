@@ -5,7 +5,7 @@ import { googleSearchWorkflow, portalSummaryWorkflow } from "../workflows/defini
 import type { PortalWorkflow } from "../workflows/workflowTypes.js";
 import { validatePortalWorkflow } from "../workflows/workflowValidation.js";
 import { defaultTenantContext, type GhostApiTenantContext } from "./accountRepository.js";
-import { getDatabase } from "./database.js";
+import { dbAll, dbGet, dbRun } from "./database.js";
 import { readJsonFile } from "./jsonFile.js";
 
 const bundledWorkflows: Record<string, PortalWorkflow> = {
@@ -35,7 +35,7 @@ export async function getWorkflow(
     await seedWorkflowIfNeeded(workflowId, bundledWorkflow, context);
   }
 
-  const workflow = findWorkflow(workflowId, context);
+  const workflow = await findWorkflow(workflowId, context);
 
   if (workflow) {
     return workflow;
@@ -59,48 +59,50 @@ export async function saveWorkflow(
   context: GhostApiTenantContext = defaultTenantContext
 ): Promise<void> {
   const validatedWorkflow = validatePortalWorkflow(workflow);
-  const db = getDatabase();
   const now = new Date().toISOString();
-  const existingWorkflow = findWorkflow(validatedWorkflow.id, context);
+  const existingWorkflow = await findWorkflow(validatedWorkflow.id, context);
   const workflowJson = JSON.stringify(validatedWorkflow);
 
   if (existingWorkflow) {
-    db.prepare(
+    await dbRun(
       `UPDATE workflows
        SET portal = ?, name = ?, description = ?, version = ?, json = ?, updated_at = ?
-       WHERE id = ? AND owner_user_id = ?`
-    ).run(
-      validatedWorkflow.portal,
-      validatedWorkflow.name,
-      validatedWorkflow.description,
-      validatedWorkflow.version,
-      workflowJson,
-      now,
-      validatedWorkflow.id,
-      context.userId
+       WHERE id = ? AND owner_user_id = ?`,
+      [
+        validatedWorkflow.portal,
+        validatedWorkflow.name,
+        validatedWorkflow.description,
+        validatedWorkflow.version,
+        workflowJson,
+        now,
+        validatedWorkflow.id,
+        context.userId
+      ]
     );
   } else {
-    db.prepare(
+    await dbRun(
       `INSERT INTO workflows (id, owner_user_id, organization_id, portal, name, description, version, json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      validatedWorkflow.id,
-      context.userId,
-      context.organizationId,
-      validatedWorkflow.portal,
-      validatedWorkflow.name,
-      validatedWorkflow.description,
-      validatedWorkflow.version,
-      workflowJson,
-      now,
-      now
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        validatedWorkflow.id,
+        context.userId,
+        context.organizationId,
+        validatedWorkflow.portal,
+        validatedWorkflow.name,
+        validatedWorkflow.description,
+        validatedWorkflow.version,
+        workflowJson,
+        now,
+        now
+      ]
     );
   }
 
-  db.prepare(
+  await dbRun(
     `INSERT INTO workflow_versions (workflow_id, owner_user_id, organization_id, version, json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(validatedWorkflow.id, context.userId, context.organizationId, validatedWorkflow.version, workflowJson, now);
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [validatedWorkflow.id, context.userId, context.organizationId, validatedWorkflow.version, workflowJson, now]
+  );
 }
 
 export async function listWorkflowVersions(
@@ -109,14 +111,13 @@ export async function listWorkflowVersions(
 ): Promise<WorkflowVersionSummary[]> {
   await getWorkflow(workflowId, context);
 
-  const rows = getDatabase()
-    .prepare(
+  const rows = await dbAll<{ version: number; created_at: string }>(
       `SELECT version, created_at
        FROM workflow_versions
        WHERE workflow_id = ? AND owner_user_id = ?
-       ORDER BY version DESC`
-    )
-    .all(workflowId, context.userId) as { version: number; created_at: string }[];
+       ORDER BY version DESC`,
+      [workflowId, context.userId]
+    );
 
   return rows.map((row) => ({
     version: row.version,
@@ -131,15 +132,14 @@ export async function getWorkflowVersion(
 ): Promise<PortalWorkflow | null> {
   await getWorkflow(workflowId, context);
 
-  const row = getDatabase()
-    .prepare(
+  const row = await dbGet<{ json: string }>(
       `SELECT json
        FROM workflow_versions
        WHERE workflow_id = ? AND version = ? AND owner_user_id = ?
        ORDER BY id DESC
-       LIMIT 1`
-    )
-    .get(workflowId, version, context.userId) as { json: string } | undefined;
+       LIMIT 1`,
+      [workflowId, version, context.userId]
+    );
 
   return row ? validatePortalWorkflow(JSON.parse(row.json)) : null;
 }
@@ -194,7 +194,7 @@ async function seedWorkflowIfNeeded(
   bundledWorkflow: PortalWorkflow,
   context: GhostApiTenantContext
 ): Promise<void> {
-  if (findWorkflow(workflowId, context)) {
+  if (await findWorkflow(workflowId, context)) {
     return;
   }
 
@@ -202,10 +202,11 @@ async function seedWorkflowIfNeeded(
   await saveWorkflow(legacyWorkflow ?? bundledWorkflow, context);
 }
 
-function findWorkflow(workflowId: string, context: GhostApiTenantContext): PortalWorkflow | null {
-  const row = getDatabase()
-    .prepare("SELECT json FROM workflows WHERE id = ? AND owner_user_id = ?")
-    .get(workflowId, context.userId) as { json: string } | undefined;
+async function findWorkflow(workflowId: string, context: GhostApiTenantContext): Promise<PortalWorkflow | null> {
+  const row = await dbGet<{ json: string }>("SELECT json FROM workflows WHERE id = ? AND owner_user_id = ?", [
+    workflowId,
+    context.userId
+  ]);
 
   if (!row) {
     return null;
@@ -214,10 +215,10 @@ function findWorkflow(workflowId: string, context: GhostApiTenantContext): Porta
   return validatePortalWorkflow(JSON.parse(row.json));
 }
 
-function listStoredWorkflows(context: GhostApiTenantContext): PortalWorkflow[] {
-  const rows = getDatabase()
-    .prepare("SELECT json FROM workflows WHERE owner_user_id = ? ORDER BY updated_at DESC")
-    .all(context.userId) as { json: string }[];
+async function listStoredWorkflows(context: GhostApiTenantContext): Promise<PortalWorkflow[]> {
+  const rows = await dbAll<{ json: string }>("SELECT json FROM workflows WHERE owner_user_id = ? ORDER BY updated_at DESC", [
+    context.userId
+  ]);
 
   return rows.map((row) => validatePortalWorkflow(JSON.parse(row.json)));
 }
