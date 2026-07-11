@@ -84,6 +84,7 @@ async function startRecorder() {
     }
 
     setStatus("Recorder opened. Use the floating GhostAPI panel on the page.");
+    window.setTimeout(() => window.close(), 120);
   });
 }
 

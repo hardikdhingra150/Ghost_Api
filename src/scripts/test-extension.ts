@@ -118,6 +118,10 @@ for (const source of [popup, popupJs, backgroundJs, contentRecorder]) {
   }
 }
 
+if (!popupJs.includes("window.close()")) {
+  throw new Error("Extension popup should close after opening the recorder");
+}
+
 if (!popup.includes("icons/icon-48.png")) {
   throw new Error("Extension popup must show the GhostAPI logo");
 }

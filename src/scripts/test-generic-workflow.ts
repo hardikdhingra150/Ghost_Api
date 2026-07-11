@@ -41,6 +41,18 @@ if (!getPayload.result?.data?.pageText?.includes("Welcome, Hardik")) {
   throw new Error("Generic workflow GET route did not extract the expected portal page text");
 }
 
+const trailingSlashResponse = await fetch("http://127.0.0.1:4000/v1/workflows/portal-summary/");
+const trailingSlashPayload = (await trailingSlashResponse.json()) as {
+  ok?: boolean;
+  workflow?: {
+    id?: string;
+  };
+};
+
+if (!trailingSlashResponse.ok || !trailingSlashPayload.ok || trailingSlashPayload.workflow?.id !== "portal-summary") {
+  throw new Error("Generic workflow trailing slash route did not return the workflow");
+}
+
 console.log(
   JSON.stringify(
     {
@@ -48,6 +60,7 @@ console.log(
       workflowId: payload.workflowId,
       runId: payload.runId,
       getRunId: getPayload.runId,
+      trailingSlashWorkflowId: trailingSlashPayload.workflow.id,
       outputKeys: Object.keys(payload.result?.data ?? {}),
       contains: "Welcome, Hardik"
     },

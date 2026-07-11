@@ -62,7 +62,7 @@ declare module "fastify" {
 }
 
 export function createGhostApi(): FastifyInstance {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: true, ignoreTrailingSlash: true });
 
   function tenantContext(request?: FastifyRequest): GhostApiTenantContext {
     return request?.ghostApiTenantContext ?? defaultTenantContext;
