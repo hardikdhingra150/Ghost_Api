@@ -88,6 +88,7 @@ const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
 const extensionResponse = await fetch("http://127.0.0.1:4000/extension/ghostapi-capture.zip");
+const css = await cssResponse.text();
 const js = await jsResponse.text();
 
 if (!cssResponse.ok) {
@@ -96,6 +97,14 @@ if (!cssResponse.ok) {
 
 if (!jsResponse.ok) {
   throw new Error(`Dashboard JS returned HTTP ${jsResponse.status}`);
+}
+
+if (css.includes("textarea:focus {\n  background: #fff7cc;")) {
+  throw new Error("Dashboard CSS should not turn workflow editor yellow on focus");
+}
+
+if (!css.includes("textarea.workflow-editor:focus") || !css.includes("outline: 4px solid var(--blue)")) {
+  throw new Error("Dashboard CSS should keep workflow editor readable on focus");
 }
 
 if (!js.includes("/v1/workflows/portal-summary/run") || !js.includes("runDemoWorkflow")) {

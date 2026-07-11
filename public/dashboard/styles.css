@@ -656,9 +656,23 @@ select {
 }
 
 input:focus,
-select:focus,
-textarea:focus {
+select:focus {
   background: #fff7cc;
+}
+
+textarea.workflow-editor:focus {
+  background: #111111;
+  color: #ffffff;
+  outline: 4px solid var(--blue);
+  outline-offset: 3px;
+}
+
+pre:focus,
+.workflow-diff:focus {
+  background: #111111;
+  color: #ffffff;
+  outline: 4px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .version-toolbar {
