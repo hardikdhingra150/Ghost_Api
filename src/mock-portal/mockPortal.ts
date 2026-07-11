@@ -99,7 +99,7 @@ function dashboardPage(): string {
   return pageShell(
     "Mock College Portal Dashboard",
     `<h1>Welcome, Hardik</h1>
-    <p class="hint">This is a fake but realistic dashboard for Week 1 GhostAPI.</p>
+    <p class="hint">Sample student portal dashboard used to verify GhostAPI browser workflow extraction.</p>
     <nav>
       <a href="/attendance" aria-label="Open Attendance">Attendance</a>
       <a href="#" aria-label="Open Marks">Marks</a>

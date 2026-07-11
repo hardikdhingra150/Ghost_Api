@@ -22,6 +22,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     linear-gradient(rgba(8, 8, 8, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(8, 8, 8, 0.035) 1px, transparent 1px),
@@ -418,7 +419,17 @@ dd {
 }
 
 .panel {
+  min-width: 0;
   padding: 24px;
+}
+
+.dashboard-grid > *,
+.stack,
+.mini-card,
+.run-list,
+.run-item,
+#selectedRun {
+  min-width: 0;
 }
 
 .span-2 { grid-column: span 2; }
@@ -506,6 +517,7 @@ dd {
 
 .mini-card {
   margin-bottom: 14px;
+  overflow: hidden;
 }
 
 .workflow-card {
@@ -603,6 +615,7 @@ pre code {
 pre,
 textarea.workflow-editor {
   width: 100%;
+  max-width: 100%;
   margin: 0;
   border: 3px solid var(--line);
   border-radius: 18px;
@@ -610,6 +623,9 @@ textarea.workflow-editor {
   color: #ffffff;
   padding: 18px;
   overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-size: 13px;
   line-height: 1.55;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -767,12 +783,17 @@ pre:focus,
 
 table {
   width: 100%;
+  max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
   border: 3px solid var(--line);
   border-radius: 16px;
   background: var(--paper);
+}
+
+.mini-card table {
+  table-layout: fixed;
 }
 
 th,
@@ -782,6 +803,8 @@ td {
   color: var(--muted);
   text-align: left;
   font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 tr:last-child td { border-bottom: 0; }

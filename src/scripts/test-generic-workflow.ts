@@ -30,6 +30,10 @@ if (!pageText?.includes("Welcome, Hardik")) {
   throw new Error("Generic workflow did not extract the expected portal page text");
 }
 
+if (pageText.includes("Week 1") || pageText.includes("fake but realistic")) {
+  throw new Error("Generic workflow extracted old prototype copy from the mock portal");
+}
+
 const getResponse = await fetch("http://127.0.0.1:4000/v1/workflows/portal-summary/run");
 const getPayload = (await getResponse.json()) as typeof payload;
 

@@ -96,6 +96,12 @@ if (!cssResponse.ok) {
   throw new Error(`Dashboard CSS returned HTTP ${cssResponse.status}`);
 }
 
+for (const expected of ["overflow-x: hidden", "white-space: pre-wrap", "word-break: break-word"]) {
+  if (!css.includes(expected)) {
+    throw new Error(`Dashboard CSS did not include overflow guard: ${expected}`);
+  }
+}
+
 if (!jsResponse.ok) {
   throw new Error(`Dashboard JS returned HTTP ${jsResponse.status}`);
 }
