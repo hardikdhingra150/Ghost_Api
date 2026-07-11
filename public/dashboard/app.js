@@ -1,3 +1,5 @@
+const dashboardWorkspaceStorageKey = "ghostapi.dashboard.workspace.v1";
+
 const api = {
   getHealth: () => requestJson("/health"),
   getMe: () => requestJson("/v1/me"),
@@ -17,10 +19,21 @@ const api = {
     body: JSON.stringify(workflow)
   }),
   runDemoWorkflow: () => requestJson("/v1/workflows/portal-summary/run"),
-  getWorkflows: () => requestJson("/v1/workflows")
+  getWorkflows: () => requestJson("/v1/workflows"),
+  createWorkspace: (workspaceId) => requestJson("/v1/accounts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: `dashboard-${workspaceId}@workspace.ghostapi.local`,
+      name: "GhostAPI User",
+      organizationName: "My GhostAPI Workspace"
+    })
+  }, { auth: false })
 };
 
 const state = {
+  apiKey: null,
+  account: null,
   runs: [],
   selectedRunId: null,
   workflowStepCount: 0,
@@ -102,8 +115,96 @@ function wireEvents() {
 }
 
 async function boot() {
+  await ensureDashboardWorkspace();
   await Promise.allSettled([refreshOverview(), loadRuns()]);
   await loadWorkflows();
+}
+
+async function ensureDashboardWorkspace() {
+  const hashWorkspace = readWorkspaceFromHash();
+  const storedWorkspace = hashWorkspace || readStoredWorkspace();
+
+  if (storedWorkspace?.apiKey?.key) {
+    state.apiKey = storedWorkspace.apiKey.key;
+    state.account = storedWorkspace.account || null;
+    writeStoredWorkspace(storedWorkspace);
+  }
+
+  if (state.apiKey) {
+    try {
+      const payload = await api.getMe();
+      state.account = payload.account || state.account;
+      writeStoredWorkspace({
+        account: state.account,
+        apiKey: { key: state.apiKey },
+        createdAt: storedWorkspace?.createdAt || new Date().toISOString()
+      });
+      return;
+    } catch {
+      state.apiKey = null;
+      state.account = null;
+      clearStoredWorkspace();
+    }
+  }
+
+  const workspaceId = createWorkspaceId();
+  const payload = await api.createWorkspace(workspaceId);
+  state.apiKey = payload.apiKey.key;
+  state.account = payload.account;
+  writeStoredWorkspace({
+    account: payload.account,
+    apiKey: payload.apiKey,
+    createdAt: new Date().toISOString()
+  });
+}
+
+function readWorkspaceFromHash() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const key = hash.get("ghostapi_key");
+
+  if (!key) return null;
+
+  hash.delete("ghostapi_key");
+  const nextHash = hash.toString();
+  window.history.replaceState(null, "", window.location.pathname + window.location.search + (nextHash ? `#${nextHash}` : ""));
+
+  return {
+    apiKey: { key },
+    account: null,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function readStoredWorkspace() {
+  try {
+    return JSON.parse(window.localStorage.getItem(dashboardWorkspaceStorageKey) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredWorkspace(workspace) {
+  try {
+    window.localStorage.setItem(dashboardWorkspaceStorageKey, JSON.stringify(workspace));
+  } catch {
+    // Private browsing can block localStorage; the current page session still keeps the key in memory.
+  }
+}
+
+function clearStoredWorkspace() {
+  try {
+    window.localStorage.removeItem(dashboardWorkspaceStorageKey);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
+function createWorkspaceId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 async function refreshOverview() {
@@ -163,10 +264,11 @@ async function refreshOverview() {
 
 function renderApiKeys(payload) {
   const keys = payload.apiKeys || [];
-  els.apiKeyBadge.textContent = keys.length === 0 ? "No stored keys" : `${keys.length} key${keys.length === 1 ? "" : "s"}`;
+  const workspaceName = state.account?.organization?.name || "Private workspace";
+  els.apiKeyBadge.textContent = keys.length === 0 ? "Private workspace" : `${keys.length} key${keys.length === 1 ? "" : "s"}`;
   els.apiKeySummary.textContent = keys.length === 0
-    ? "This workspace has no stored API keys yet. For public testing, calls can run without a key when the server allows it."
-    : "Stored keys are available for this workspace. GhostAPI only displays key metadata after creation.";
+    ? `${workspaceName} is isolated in this browser. New users get their own workspace instead of shared demo data.`
+    : `${workspaceName} is isolated in this browser. GhostAPI only displays key metadata after creation.`;
 }
 
 function renderDeployment(payload, cloudPayload) {
@@ -328,8 +430,17 @@ function showCopied(button) {
   }, 1400);
 }
 
-async function requestJson(url, options) {
-  const response = await fetch(url, options);
+async function requestJson(url, options = {}, settings = { auth: true }) {
+  const headers = new Headers(options.headers || {});
+
+  if (settings.auth !== false && state.apiKey) {
+    headers.set("x-ghostapi-key", state.apiKey);
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
   const payload = await response.json();
 
   if (!response.ok || payload.ok === false) {

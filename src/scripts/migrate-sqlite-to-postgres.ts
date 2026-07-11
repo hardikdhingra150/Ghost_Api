@@ -37,7 +37,7 @@ await copyTable(
     "created_at",
     "updated_at"
   ],
-  ["id"]
+  ["id", "owner_user_id"]
 );
 await copyTable(
   "workflow_versions",

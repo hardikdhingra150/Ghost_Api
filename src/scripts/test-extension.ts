@@ -94,6 +94,8 @@ for (const expected of [
   "Save API",
   "Record clicks/fills",
   "/v1/workflows/",
+  "x-ghostapi-key",
+  "ghostApiWorkspace",
   "document.addEventListener(\"input\", captureInput, true)",
   "element.getAttribute(\"name\")",
   "Saved. Open",
@@ -120,6 +122,12 @@ for (const source of [popup, popupJs, backgroundJs, contentRecorder]) {
 
 if (!popupJs.includes("window.close()")) {
   throw new Error("Extension popup should close after opening the recorder");
+}
+
+for (const expected of ["ghostApiWorkspace", "ghostapi_key", "/v1/accounts"]) {
+  if (!popupJs.includes(expected)) {
+    throw new Error(`Extension popup must pass private workspace context to the dashboard: ${expected}`);
+  }
 }
 
 if (!popup.includes("icons/icon-48.png")) {

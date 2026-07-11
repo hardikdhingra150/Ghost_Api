@@ -139,7 +139,7 @@ function migrateSqlite(db: DatabaseSync): void {
     );
 
     CREATE TABLE IF NOT EXISTS workflows (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
       owner_user_id TEXT NOT NULL DEFAULT 'local-user',
       organization_id TEXT NOT NULL DEFAULT 'local-org',
       portal TEXT NOT NULL,
@@ -148,7 +148,8 @@ function migrateSqlite(db: DatabaseSync): void {
       version INTEGER NOT NULL,
       json TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (id, owner_user_id)
     );
 
     CREATE TABLE IF NOT EXISTS workflow_versions (
@@ -158,8 +159,7 @@ function migrateSqlite(db: DatabaseSync): void {
       organization_id TEXT NOT NULL DEFAULT 'local-org',
       version INTEGER NOT NULL,
       json TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (workflow_id) REFERENCES workflows(id)
+      created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS runs (
@@ -199,6 +199,7 @@ function migrateSqlite(db: DatabaseSync): void {
   addSqliteColumnIfMissing(db, "runs", "organization_id", "TEXT NOT NULL DEFAULT 'local-org'");
   addSqliteColumnIfMissing(db, "api_keys", "owner_user_id", "TEXT NOT NULL DEFAULT 'local-user'");
   addSqliteColumnIfMissing(db, "api_keys", "organization_id", "TEXT NOT NULL DEFAULT 'local-org'");
+  migrateSqliteWorkflowTenantKey(db);
 
   db.exec(commonIndexes);
 }
@@ -229,7 +230,7 @@ async function migratePostgres(): Promise<void> {
     );
 
     CREATE TABLE IF NOT EXISTS workflows (
-      id TEXT PRIMARY KEY,
+      id TEXT NOT NULL,
       owner_user_id TEXT NOT NULL DEFAULT 'local-user',
       organization_id TEXT NOT NULL DEFAULT 'local-org',
       portal TEXT NOT NULL,
@@ -238,12 +239,13 @@ async function migratePostgres(): Promise<void> {
       version INTEGER NOT NULL,
       json TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (id, owner_user_id)
     );
 
     CREATE TABLE IF NOT EXISTS workflow_versions (
       id BIGSERIAL PRIMARY KEY,
-      workflow_id TEXT NOT NULL REFERENCES workflows(id),
+      workflow_id TEXT NOT NULL,
       owner_user_id TEXT NOT NULL DEFAULT 'local-user',
       organization_id TEXT NOT NULL DEFAULT 'local-org',
       version INTEGER NOT NULL,
@@ -280,6 +282,7 @@ async function migratePostgres(): Promise<void> {
     );
   `);
 
+  await migratePostgresWorkflowTenantKey(pool);
   await pool.query(commonIndexes);
 }
 
@@ -301,4 +304,102 @@ function addSqliteColumnIfMissing(db: DatabaseSync, table: string, column: strin
   }
 
   db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+function migrateSqliteWorkflowTenantKey(db: DatabaseSync): void {
+  const workflowColumns = db.prepare("PRAGMA table_info(workflows)").all() as { name: string; pk: number }[];
+  const idColumn = workflowColumns.find((column) => column.name === "id");
+  const ownerColumn = workflowColumns.find((column) => column.name === "owner_user_id");
+
+  if (idColumn?.pk === 1 && ownerColumn?.pk === 2) {
+    return;
+  }
+
+  db.exec(`
+    PRAGMA foreign_keys = OFF;
+
+    ALTER TABLE workflows RENAME TO workflows_old;
+
+    CREATE TABLE workflows (
+      id TEXT NOT NULL,
+      owner_user_id TEXT NOT NULL DEFAULT 'local-user',
+      organization_id TEXT NOT NULL DEFAULT 'local-org',
+      portal TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (id, owner_user_id)
+    );
+
+    INSERT INTO workflows (
+      id,
+      owner_user_id,
+      organization_id,
+      portal,
+      name,
+      description,
+      version,
+      json,
+      created_at,
+      updated_at
+    )
+    SELECT
+      id,
+      owner_user_id,
+      organization_id,
+      portal,
+      name,
+      description,
+      version,
+      json,
+      created_at,
+      updated_at
+    FROM workflows_old;
+
+    DROP TABLE workflows_old;
+
+    ALTER TABLE workflow_versions RENAME TO workflow_versions_old;
+
+    CREATE TABLE workflow_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workflow_id TEXT NOT NULL,
+      owner_user_id TEXT NOT NULL DEFAULT 'local-user',
+      organization_id TEXT NOT NULL DEFAULT 'local-org',
+      version INTEGER NOT NULL,
+      json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    INSERT INTO workflow_versions (
+      id,
+      workflow_id,
+      owner_user_id,
+      organization_id,
+      version,
+      json,
+      created_at
+    )
+    SELECT
+      id,
+      workflow_id,
+      owner_user_id,
+      organization_id,
+      version,
+      json,
+      created_at
+    FROM workflow_versions_old;
+
+    DROP TABLE workflow_versions_old;
+
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
+async function migratePostgresWorkflowTenantKey(pool: pg.Pool): Promise<void> {
+  await pool.query("ALTER TABLE workflow_versions DROP CONSTRAINT IF EXISTS workflow_versions_workflow_id_fkey");
+  await pool.query("ALTER TABLE workflows DROP CONSTRAINT IF EXISTS workflows_pkey");
+  await pool.query("ALTER TABLE workflows ADD PRIMARY KEY (id, owner_user_id)");
 }

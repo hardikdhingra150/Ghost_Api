@@ -122,6 +122,12 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
   throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
+for (const expected of ["ghostapi.dashboard.workspace.v1", "x-ghostapi-key", "/v1/accounts", "ghostapi_key"]) {
+  if (!js.includes(expected)) {
+    throw new Error(`Dashboard JS must isolate browser workspaces with ${expected}`);
+  }
+}
+
 if (js.includes("runAttendance") || js.includes("api.runAttendance")) {
   throw new Error("Dashboard public demo should not call the old credential-based attendance runner");
 }
