@@ -107,6 +107,11 @@ button.secondary {
   gap: 8px;
 }
 
+.account-card {
+  display: grid;
+  gap: 10px;
+}
+
 code {
   display: block;
   overflow: auto;

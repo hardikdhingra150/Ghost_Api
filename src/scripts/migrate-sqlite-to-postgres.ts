@@ -17,7 +17,7 @@ await initializeDatabase();
 
 const sqlite = new DatabaseSync(config.storage.databaseFile, { readOnly: true });
 
-await copyTable("users", ["id", "email", "name", "created_at"], ["id"]);
+await copyTable("users", ["id", "email", "username", "password_hash", "name", "created_at"], ["id"]);
 await copyTable("organizations", ["id", "name", "created_at"], ["id"]);
 await copyTable("organization_members", ["organization_id", "user_id", "role", "created_at"], [
   "organization_id",

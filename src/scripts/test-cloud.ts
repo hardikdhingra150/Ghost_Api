@@ -60,6 +60,41 @@ if (scopedMePayload.account?.user?.id !== accountPayload.account?.user?.id) {
   throw new Error("Expected x-ghostapi-key to resolve the API key owner workspace");
 }
 
+const authUsername = `clouduser${Date.now()}`;
+const authPassword = "test-password-123";
+const signupResponse = await fetch("http://127.0.0.1:4000/v1/auth/signup", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    username: authUsername,
+    password: authPassword,
+    organizationName: "Password Auth Workspace"
+  })
+});
+const signupPayload = (await signupResponse.json()) as typeof accountPayload;
+
+if (!signupResponse.ok || !signupPayload.ok || !signupPayload.apiKey?.key) {
+  throw new Error("Expected username/password signup to return an API key");
+}
+
+const loginResponse = await fetch("http://127.0.0.1:4000/v1/auth/login", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    username: authUsername,
+    password: authPassword
+  })
+});
+const loginPayload = (await loginResponse.json()) as typeof accountPayload;
+
+if (!loginResponse.ok || !loginPayload.ok || !loginPayload.apiKey?.key) {
+  throw new Error("Expected username/password login to return an API key");
+}
+
+if (loginPayload.account?.user?.id !== signupPayload.account?.user?.id) {
+  throw new Error("Expected login to return the same account created by signup");
+}
+
 const secondAccountResponse = await fetch("http://127.0.0.1:4000/v1/accounts", {
   method: "POST",
   headers: { "content-type": "application/json" },

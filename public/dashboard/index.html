@@ -111,6 +111,29 @@
       </article>
     </section>
 
+    <section class="auth-panel" aria-label="GhostAPI account">
+      <div>
+        <p class="eyebrow">Account</p>
+        <h2>Your saved APIs</h2>
+        <p id="authStatus">Sign in or create an account so the dashboard and extension save APIs to the same workspace.</p>
+      </div>
+      <div class="auth-form">
+        <label>
+          Username
+          <input id="authUsername" autocomplete="username" />
+        </label>
+        <label>
+          Password
+          <input id="authPassword" type="password" autocomplete="current-password" />
+        </label>
+        <div class="button-row auth-actions">
+          <button class="button primary" id="authSignInButton">Sign in</button>
+          <button class="button secondary" id="authCreateButton">Create account</button>
+          <button class="button secondary" id="authLogoutButton">Log out</button>
+        </div>
+      </div>
+    </section>
+
     <main class="dashboard-grid">
       <section id="start" class="panel span-2">
         <div class="section-heading">

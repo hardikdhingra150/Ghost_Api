@@ -7,7 +7,13 @@ import { executeWorkflowAction } from "../actions/executeWorkflowAction.js";
 import { executeGetAttendanceAction } from "../actions/getAttendanceAction.js";
 import { config, mockPortalCredentials } from "../config.js";
 import { sendPublicFile } from "../http/staticFiles.js";
-import { createAccount, defaultTenantContext, getAccount } from "../storage/accountRepository.js";
+import {
+  createAccount,
+  createPasswordAccount,
+  defaultTenantContext,
+  getAccount,
+  verifyPasswordAccount
+} from "../storage/accountRepository.js";
 import type { GhostApiTenantContext } from "../storage/accountRepository.js";
 import { createApiKey, listApiKeys, revokeApiKey, tenantContextForApiKey } from "../storage/apiKeyRepository.js";
 import { activeStorageDriver } from "../storage/database.js";
@@ -48,8 +54,24 @@ const createAccountSchema = z.object({
   organizationName: z.string().min(1).max(100).optional()
 });
 
+const usernameSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(40)
+  .regex(/^[a-zA-Z0-9._-]+$/, "Use letters, numbers, dot, dash, or underscore only");
+
+const passwordAuthSchema = z.object({
+  username: usernameSchema,
+  password: z.string().min(6).max(200),
+  name: z.string().min(1).max(80).optional(),
+  organizationName: z.string().min(1).max(100).optional()
+});
+
 const publicV1Routes = new Set([
   "/v1/accounts",
+  "/v1/auth/signup",
+  "/v1/auth/login",
   "/v1/cloud/plan",
   "/v1/deployment/plan",
   "/v1/database/plan"
@@ -183,6 +205,68 @@ export function createGhostApi(): FastifyInstance {
         details: error instanceof Error ? error.message : String(error)
       });
     }
+  });
+
+  app.post("/v1/auth/signup", async (request, reply) => {
+    const parsed = passwordAuthSchema.safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        ok: false,
+        error: "Invalid signup request",
+        details: parsed.error.flatten()
+      });
+    }
+
+    try {
+      const account = await createPasswordAccount(parsed.data);
+      const apiKey = await createApiKey("Dashboard session", {
+        userId: account.user.id,
+        organizationId: account.organization.id,
+        role: account.membership.role
+      });
+
+      return {
+        ok: true,
+        account,
+        apiKey
+      };
+    } catch (error) {
+      return reply.code(409).send({
+        ok: false,
+        error: "Could not create account",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/v1/auth/login", async (request, reply) => {
+    const parsed = passwordAuthSchema.pick({ username: true, password: true }).safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        ok: false,
+        error: "Invalid login request",
+        details: parsed.error.flatten()
+      });
+    }
+
+    const result = await verifyPasswordAccount(parsed.data);
+
+    if (!result) {
+      return reply.code(401).send({
+        ok: false,
+        error: "Invalid username or password"
+      });
+    }
+
+    const apiKey = await createApiKey("Dashboard session", result.context);
+
+    return {
+      ok: true,
+      account: result.account,
+      apiKey
+    };
   });
 
   app.get("/v1/cloud/plan", async () => {

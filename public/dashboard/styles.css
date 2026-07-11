@@ -411,6 +411,30 @@ dd {
   font-size: 14px;
 }
 
+.auth-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1fr);
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 24px;
+  border: 3px solid var(--line);
+  border-radius: 28px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.auth-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.auth-actions {
+  grid-column: span 2;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(400px, 0.62fr);
@@ -825,7 +849,8 @@ td strong { color: var(--ink); }
 
 @media (max-width: 1180px) {
   .hero,
-  .dashboard-grid {
+  .dashboard-grid,
+  .auth-panel {
     grid-template-columns: 1fr;
   }
 
@@ -853,6 +878,8 @@ td strong { color: var(--ink); }
   .metric-grid { grid-template-columns: 1fr; }
   .launch-strip { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; flex-direction: column; }
+  .auth-form { grid-template-columns: 1fr; }
+  .auth-actions { grid-column: span 1; }
   .version-toolbar { grid-template-columns: 1fr; }
   .extension-install { grid-template-columns: 1fr; }
   .button { width: 100%; }

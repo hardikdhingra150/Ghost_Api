@@ -67,7 +67,7 @@ for (const forbidden of ["Week 11", "Week 12", "Week 13", "Week 14", "Local prot
   }
 }
 
-for (const forbidden of ["Optional demo username", "Optional demo password", "autocomplete=\"username\"", "autocomplete=\"current-password\""]) {
+for (const forbidden of ["Optional demo username", "Optional demo password"]) {
   if (html.includes(forbidden)) {
     throw new Error(`Dashboard HTML still included old credential fields: ${forbidden}`);
   }
@@ -122,7 +122,7 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
   throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
-for (const expected of ["ghostapi.dashboard.workspace.v1", "x-ghostapi-key", "/v1/accounts", "ghostapi_key"]) {
+for (const expected of ["ghostapi.dashboard.workspace.v1", "x-ghostapi-key", "/v1/auth/signup", "/v1/auth/login", "ghostapi_key"]) {
   if (!js.includes(expected)) {
     throw new Error(`Dashboard JS must isolate browser workspaces with ${expected}`);
   }

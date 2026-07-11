@@ -23,15 +23,10 @@
     state.baseUrl = normalizeBaseUrl(stored.ghostApiBaseUrl || state.baseUrl);
     state.apiKey = stored.ghostApiWorkspace?.apiKey?.key || null;
 
-    try {
-      if (!state.apiKey) {
-        const workspace = await ensureWorkspace();
-        state.apiKey = workspace.apiKey.key;
-      }
-
+    if (state.apiKey) {
       setStatus("Recorder ready. Private workspace connected.");
-    } catch (error) {
-      setStatus("Recorder ready, but private workspace setup failed: " + error.message);
+    } else {
+      setStatus("Sign in from the GhostAPI extension popup before saving APIs.");
     }
   });
 
@@ -226,8 +221,7 @@
     setStatus("Saving API to GhostAPI…");
     try {
       if (!state.apiKey) {
-        const workspace = await ensureWorkspace();
-        state.apiKey = workspace.apiKey.key;
+        throw new Error("Sign in from the GhostAPI extension popup before saving APIs.");
       }
 
       const response = await fetch(`${state.baseUrl}/v1/workflows/${encodeURIComponent(workflow.id)}`, {
@@ -250,33 +244,6 @@
   async function copyWorkflow() {
     await navigator.clipboard?.writeText(JSON.stringify(previewWorkflow(), null, 2));
     setStatus("Workflow JSON copied.");
-  }
-
-  async function ensureWorkspace() {
-    const workspaceId = createWorkspaceId();
-    const response = await fetch(`${state.baseUrl}/v1/accounts`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        email: `extension-${workspaceId}@workspace.ghostapi.local`,
-        name: "GhostAPI Extension User",
-        organizationName: "My GhostAPI Workspace"
-      })
-    });
-    const payload = await response.json();
-
-    if (!response.ok || payload.ok === false || !payload.apiKey?.key) {
-      throw new Error(payload.error || "Could not create extension workspace");
-    }
-
-    const workspace = {
-      account: payload.account,
-      apiKey: payload.apiKey,
-      createdAt: new Date().toISOString()
-    };
-
-    await chrome.storage.sync.set({ ghostApiWorkspace: workspace });
-    return workspace;
   }
 
   function clearWorkflow() {
@@ -311,14 +278,6 @@
 
   function setStatus(message) {
     ui.status.textContent = message;
-  }
-
-  function createWorkspaceId() {
-    if (crypto?.randomUUID) {
-      return crypto.randomUUID();
-    }
-
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 
   function uniqueStepId(base) {

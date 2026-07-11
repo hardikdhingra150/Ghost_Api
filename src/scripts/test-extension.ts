@@ -124,10 +124,14 @@ if (!popupJs.includes("window.close()")) {
   throw new Error("Extension popup should close after opening the recorder");
 }
 
-for (const expected of ["ghostApiWorkspace", "ghostapi_key", "/v1/accounts"]) {
+for (const expected of ["ghostApiWorkspace", "ghostapi_key", "/v1/auth/signup", "/v1/auth/login"]) {
   if (!popupJs.includes(expected)) {
     throw new Error(`Extension popup must pass private workspace context to the dashboard: ${expected}`);
   }
+}
+
+if (contentRecorder.includes("/v1/accounts")) {
+  throw new Error("Extension recorder should not create anonymous workspaces while saving APIs");
 }
 
 if (!popup.includes("icons/icon-48.png")) {

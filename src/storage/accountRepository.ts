@@ -35,6 +35,8 @@ export const defaultTenantContext: GhostApiTenantContext = {
 type UserRow = {
   id: string;
   email: string;
+  username: string | null;
+  password_hash: string | null;
   name: string;
   created_at: string;
 };
@@ -57,6 +59,8 @@ export async function ensureDefaultAccount(): Promise<GhostApiAccount> {
     userId: defaultTenantContext.userId,
     organizationId: defaultTenantContext.organizationId,
     email: config.cloud.defaultUserEmail,
+    username: null,
+    passwordHash: null,
     name: "Local User",
     organizationName: config.cloud.defaultOrgName,
     role: defaultTenantContext.role,
@@ -82,6 +86,8 @@ export async function createAccount(input: {
     userId: context.userId,
     organizationId: context.organizationId,
     email: input.email,
+    username: null,
+    passwordHash: null,
     name: input.name || input.email.split("@")[0] || "GhostAPI User",
     organizationName: input.organizationName || "GhostAPI Workspace",
     role: context.role,
@@ -89,6 +95,67 @@ export async function createAccount(input: {
   });
 
   return getAccount(context);
+}
+
+export async function createPasswordAccount(input: {
+  username: string;
+  password: string;
+  name?: string;
+  organizationName?: string;
+}): Promise<GhostApiAccount> {
+  const username = normalizeUsername(input.username);
+  const now = new Date().toISOString();
+  const context: GhostApiTenantContext = {
+    userId: crypto.randomUUID(),
+    organizationId: crypto.randomUUID(),
+    role: "owner"
+  };
+
+  await ensureAccount({
+    userId: context.userId,
+    organizationId: context.organizationId,
+    email: `${username}@users.ghostapi.local`,
+    username,
+    passwordHash: hashPassword(input.password),
+    name: input.name || username,
+    organizationName: input.organizationName || `${username}'s GhostAPI Workspace`,
+    role: context.role,
+    createdAt: now
+  });
+
+  return getAccount(context);
+}
+
+export async function verifyPasswordAccount(input: {
+  username: string;
+  password: string;
+}): Promise<{ account: GhostApiAccount; context: GhostApiTenantContext } | null> {
+  const username = normalizeUsername(input.username);
+  const user = await dbGet<UserRow>("SELECT * FROM users WHERE username = ?", [username]);
+
+  if (!user?.password_hash || !verifyPassword(input.password, user.password_hash)) {
+    return null;
+  }
+
+  const membership = await dbGet<{ organization_id: string; role: GhostApiTenantContext["role"] }>(
+    "SELECT organization_id, role FROM organization_members WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+    [user.id]
+  );
+
+  if (!membership) {
+    return null;
+  }
+
+  const context: GhostApiTenantContext = {
+    userId: user.id,
+    organizationId: membership.organization_id,
+    role: membership.role
+  };
+
+  return {
+    account: await getAccount(context),
+    context
+  };
 }
 
 export async function getAccount(context: GhostApiTenantContext = defaultTenantContext): Promise<GhostApiAccount> {
@@ -126,17 +193,19 @@ async function ensureAccount(input: {
   userId: string;
   organizationId: string;
   email: string;
+  username: string | null;
+  passwordHash: string | null;
   name: string;
   organizationName: string;
   role: GhostApiTenantContext["role"];
   createdAt: string;
 }): Promise<void> {
   const userInsert = activeStorageDriver() === "postgres"
-    ? `INSERT INTO users (id, email, name, created_at)
-       VALUES (?, ?, ?, ?)
+    ? `INSERT INTO users (id, email, username, password_hash, name, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (id) DO NOTHING`
-    : `INSERT OR IGNORE INTO users (id, email, name, created_at)
-       VALUES (?, ?, ?, ?)`;
+    : `INSERT OR IGNORE INTO users (id, email, username, password_hash, name, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`;
   const orgInsert = activeStorageDriver() === "postgres"
     ? `INSERT INTO organizations (id, name, created_at)
        VALUES (?, ?, ?)
@@ -151,8 +220,31 @@ async function ensureAccount(input: {
        VALUES (?, ?, ?, ?)`;
 
   await dbTransaction([
-    () => dbRun(userInsert, [input.userId, input.email, input.name, input.createdAt]),
+    () => dbRun(userInsert, [input.userId, input.email, input.username, input.passwordHash, input.name, input.createdAt]),
     () => dbRun(orgInsert, [input.organizationId, input.organizationName, input.createdAt]),
     () => dbRun(memberInsert, [input.organizationId, input.userId, input.role, input.createdAt])
   ]);
+}
+
+function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase();
+}
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("base64url");
+  const hash = crypto.scryptSync(password, salt, 64).toString("base64url");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string): boolean {
+  const [algorithm, salt, expectedHash] = storedHash.split(":");
+
+  if (algorithm !== "scrypt" || !salt || !expectedHash) {
+    return false;
+  }
+
+  const actual = Buffer.from(crypto.scryptSync(password, salt, 64).toString("base64url"));
+  const expected = Buffer.from(expectedHash);
+
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }

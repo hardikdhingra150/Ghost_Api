@@ -6,7 +6,13 @@ const els = {
   startRecorder: document.querySelector("#startRecorder"),
   openDashboard: document.querySelector("#openDashboard"),
   status: document.querySelector("#status"),
-  endpointPreview: document.querySelector("#endpointPreview")
+  endpointPreview: document.querySelector("#endpointPreview"),
+  accountStatus: document.querySelector("#accountStatus"),
+  authUsername: document.querySelector("#authUsername"),
+  authPassword: document.querySelector("#authPassword"),
+  signInAccount: document.querySelector("#signInAccount"),
+  createAccount: document.querySelector("#createAccount"),
+  logoutAccount: document.querySelector("#logoutAccount")
 };
 
 const CLOUD_BASE_URL = "https://ghostapi-api.onrender.com";
@@ -30,6 +36,14 @@ async function boot() {
   els.checkServer.addEventListener("click", checkServer);
   els.startRecorder.addEventListener("click", startRecorder);
   els.openDashboard.addEventListener("click", openDashboard);
+  els.signInAccount.addEventListener("click", () => authenticate("signin"));
+  els.createAccount.addEventListener("click", () => authenticate("signup"));
+  els.logoutAccount.addEventListener("click", logoutAccount);
+  els.authPassword.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") authenticate("signin");
+  });
+
+  updateAccountStatus();
 }
 
 async function setServer(baseUrl) {
@@ -102,6 +116,49 @@ async function openDashboard() {
   }
 }
 
+async function authenticate(mode) {
+  await saveBaseUrl();
+  const username = els.authUsername.value.trim();
+  const password = els.authPassword.value;
+
+  if (!username || !password) {
+    return setAccountStatus("Enter a username and password.");
+  }
+
+  setAccountStatus(mode === "signup" ? "Creating account..." : "Signing in...");
+
+  try {
+    const baseUrl = normalizeBaseUrl(els.baseUrl.value);
+    const response = await fetch(baseUrl + (mode === "signup" ? "/v1/auth/signup" : "/v1/auth/login"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        username,
+        password,
+        organizationName: `${username}'s GhostAPI Workspace`
+      })
+    });
+    const payload = await response.json();
+
+    if (!response.ok || payload.ok === false || !payload.apiKey?.key) {
+      throw new Error(payload.error || "Authentication failed");
+    }
+
+    await chrome.storage.sync.set({
+      [WORKSPACE_STORAGE_KEY]: {
+        account: payload.account,
+        apiKey: payload.apiKey,
+        createdAt: new Date().toISOString()
+      }
+    });
+    els.authPassword.value = "";
+    updateAccountStatus(payload.account);
+    setStatus("Account connected. Saves will appear on your dashboard.");
+  } catch (error) {
+    setAccountStatus((mode === "signup" ? "Create failed: " : "Sign in failed: ") + error.message);
+  }
+}
+
 async function ensureWorkspace() {
   const stored = await chrome.storage.sync.get([WORKSPACE_STORAGE_KEY]);
 
@@ -109,43 +166,17 @@ async function ensureWorkspace() {
     return stored[WORKSPACE_STORAGE_KEY];
   }
 
-  const workspaceId = createWorkspaceId();
-  const baseUrl = normalizeBaseUrl(els.baseUrl.value);
-  const response = await fetch(baseUrl + "/v1/accounts", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      email: `extension-${workspaceId}@workspace.ghostapi.local`,
-      name: "GhostAPI Extension User",
-      organizationName: "My GhostAPI Workspace"
-    })
-  });
-  const payload = await response.json();
+  throw new Error("Sign in or create an account first.");
+}
 
-  if (!response.ok || payload.ok === false || !payload.apiKey?.key) {
-    throw new Error(payload.error || "Could not create extension workspace");
-  }
-
-  const workspace = {
-    account: payload.account,
-    apiKey: payload.apiKey,
-    createdAt: new Date().toISOString()
-  };
-
-  await chrome.storage.sync.set({ [WORKSPACE_STORAGE_KEY]: workspace });
-  return workspace;
+async function logoutAccount() {
+  await chrome.storage.sync.remove(WORKSPACE_STORAGE_KEY);
+  updateAccountStatus();
+  setStatus("Signed out.");
 }
 
 function normalizeBaseUrl(value) {
   return String(value || CLOUD_BASE_URL).replace(/\/+$/, "");
-}
-
-function createWorkspaceId() {
-  if (crypto?.randomUUID) {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function updateEndpointPreview() {
@@ -154,4 +185,15 @@ function updateEndpointPreview() {
 
 function setStatus(message) {
   els.status.textContent = message;
+}
+
+async function updateAccountStatus(account) {
+  const resolvedAccount = account || (await chrome.storage.sync.get([WORKSPACE_STORAGE_KEY]))[WORKSPACE_STORAGE_KEY]?.account;
+  setAccountStatus(resolvedAccount
+    ? `Signed in as ${resolvedAccount.user?.email?.split("@")[0] || resolvedAccount.user?.name || "workspace"}.`
+    : "Sign in so saved APIs appear on your dashboard.");
+}
+
+function setAccountStatus(message) {
+  els.accountStatus.textContent = message;
 }

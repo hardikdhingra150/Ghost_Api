@@ -1,11 +1,11 @@
 const dashboardWorkspaceStorageKey = "ghostapi.dashboard.workspace.v1";
 
 const api = {
-  getHealth: () => requestJson("/health"),
+  getHealth: () => requestJson("/health", {}, { auth: false }),
   getMe: () => requestJson("/v1/me"),
-  getCloudPlan: () => requestJson("/v1/cloud/plan"),
-  getDeploymentPlan: () => requestJson("/v1/deployment/plan"),
-  getDatabasePlan: () => requestJson("/v1/database/plan"),
+  getCloudPlan: () => requestJson("/v1/cloud/plan", {}, { auth: false }),
+  getDeploymentPlan: () => requestJson("/v1/deployment/plan", {}, { auth: false }),
+  getDatabasePlan: () => requestJson("/v1/database/plan", {}, { auth: false }),
   getApiKeys: () => requestJson("/v1/api-keys"),
   getRuns: (limit, offset) => requestJson(`/v1/runs/page?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
   getWorkflow: (workflowId) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}`),
@@ -20,14 +20,19 @@ const api = {
   }),
   runDemoWorkflow: () => requestJson("/v1/workflows/portal-summary/run"),
   getWorkflows: () => requestJson("/v1/workflows"),
-  createWorkspace: (workspaceId) => requestJson("/v1/accounts", {
+  signUp: (username, password) => requestJson("/v1/auth/signup", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      email: `dashboard-${workspaceId}@workspace.ghostapi.local`,
-      name: "GhostAPI User",
-      organizationName: "My GhostAPI Workspace"
+      username,
+      password,
+      organizationName: `${username}'s GhostAPI Workspace`
     })
+  }, { auth: false }),
+  signIn: (username, password) => requestJson("/v1/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username, password })
   }, { auth: false })
 };
 
@@ -89,6 +94,13 @@ const els = {
   workflowCards: document.querySelector("#workflowCards"),
   deploymentCards: document.querySelector("#deploymentCards"),
   downloadExtensionButton: document.querySelector("#downloadExtensionButton")
+  ,
+  authStatus: document.querySelector("#authStatus"),
+  authUsername: document.querySelector("#authUsername"),
+  authPassword: document.querySelector("#authPassword"),
+  authSignInButton: document.querySelector("#authSignInButton"),
+  authCreateButton: document.querySelector("#authCreateButton"),
+  authLogoutButton: document.querySelector("#authLogoutButton")
 };
 
 wireEvents();
@@ -109,18 +121,31 @@ function wireEvents() {
   els.downloadExtensionButton?.addEventListener("click", () => {
     setStatus("Extension download started.");
   });
+  els.authSignInButton.addEventListener("click", () => authenticate("signin"));
+  els.authCreateButton.addEventListener("click", () => authenticate("signup"));
+  els.authLogoutButton.addEventListener("click", logout);
+  els.authPassword.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") authenticate("signin");
+  });
   document.querySelectorAll(".copy-command").forEach((button) => {
     button.addEventListener("click", () => copyCommand(button.dataset.command, button));
   });
 }
 
 async function boot() {
-  await ensureDashboardWorkspace();
-  await Promise.allSettled([refreshOverview(), loadRuns()]);
-  await loadWorkflows();
+  const signedIn = await restoreDashboardWorkspace();
+  setAuthUi();
+  await refreshOverview();
+
+  if (!signedIn) {
+    renderSignedOutState();
+    return;
+  }
+
+  await Promise.allSettled([loadRuns(), loadWorkflows()]);
 }
 
-async function ensureDashboardWorkspace() {
+async function restoreDashboardWorkspace() {
   const hashWorkspace = readWorkspaceFromHash();
   const storedWorkspace = hashWorkspace || readStoredWorkspace();
 
@@ -139,7 +164,7 @@ async function ensureDashboardWorkspace() {
         apiKey: { key: state.apiKey },
         createdAt: storedWorkspace?.createdAt || new Date().toISOString()
       });
-      return;
+      return true;
     } catch {
       state.apiKey = null;
       state.account = null;
@@ -147,8 +172,35 @@ async function ensureDashboardWorkspace() {
     }
   }
 
-  const workspaceId = createWorkspaceId();
-  const payload = await api.createWorkspace(workspaceId);
+  return false;
+}
+
+async function authenticate(mode) {
+  const username = els.authUsername.value.trim();
+  const password = els.authPassword.value;
+
+  if (!username || !password) {
+    els.authStatus.textContent = "Enter a username and password.";
+    return;
+  }
+
+  els.authStatus.textContent = mode === "signup" ? "Creating account..." : "Signing in...";
+
+  try {
+    const payload = mode === "signup"
+      ? await api.signUp(username, password)
+      : await api.signIn(username, password);
+
+    saveAuthenticatedWorkspace(payload);
+    els.authPassword.value = "";
+    setAuthUi();
+    await Promise.allSettled([refreshOverview(), loadRuns(), loadWorkflows()]);
+  } catch (error) {
+    els.authStatus.textContent = (mode === "signup" ? "Create account failed: " : "Sign in failed: ") + error.message;
+  }
+}
+
+function saveAuthenticatedWorkspace(payload) {
   state.apiKey = payload.apiKey.key;
   state.account = payload.account;
   writeStoredWorkspace({
@@ -156,6 +208,49 @@ async function ensureDashboardWorkspace() {
     apiKey: payload.apiKey,
     createdAt: new Date().toISOString()
   });
+}
+
+function logout() {
+  state.apiKey = null;
+  state.account = null;
+  state.runs = [];
+  state.workflows = [];
+  state.selectedRunId = null;
+  state.selectedWorkflowId = null;
+  clearStoredWorkspace();
+  setAuthUi();
+  renderSignedOutState();
+  setStatus("Signed out.");
+}
+
+function setAuthUi() {
+  const signedIn = Boolean(state.apiKey && state.account);
+  const username = state.account?.user?.email?.split("@")[0] || state.account?.user?.name || "workspace";
+  els.authStatus.textContent = signedIn
+    ? `Signed in as ${username}. Dashboard and extension saves now use this workspace.`
+    : "Sign in or create an account so saved APIs appear everywhere you use GhostAPI.";
+  els.authLogoutButton.disabled = !signedIn;
+  els.runButton.disabled = !signedIn;
+  els.heroRunButton.disabled = !signedIn;
+  els.refreshButton.disabled = !signedIn;
+  els.loadWorkflowButton.disabled = !signedIn;
+  els.saveWorkflowButton.disabled = !signedIn;
+}
+
+function renderSignedOutState() {
+  els.apiKeyBadge.textContent = "Sign in";
+  els.apiKeySummary.textContent = "Create an account or sign in to see your saved APIs and run history.";
+  els.workflowsMetric.textContent = "0";
+  els.runsMetric.textContent = "0";
+  els.stepsMetric.textContent = "0";
+  els.statusMetric.textContent = "Sign in";
+  els.workflowCards.innerHTML = '<p class="empty">Sign in to load your saved website APIs.</p>';
+  els.workflowJson.value = "Sign in to edit saved APIs.";
+  els.workflowVersionSelect.innerHTML = '<option value="">Sign in required</option>';
+  els.runs.innerHTML = '<p class="empty">Sign in to see your run history.</p>';
+  els.runCount.textContent = "Sign in";
+  els.selectedRun.innerHTML = '<p class="empty">Sign in to inspect run details.</p>';
+  els.selectedRunStatus.textContent = "none";
 }
 
 function readWorkspaceFromHash() {
@@ -199,23 +294,18 @@ function clearStoredWorkspace() {
   }
 }
 
-function createWorkspaceId() {
-  if (window.crypto?.randomUUID) {
-    return window.crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 async function refreshOverview() {
   setStatus("Refreshing deployment status...");
+  const accountRequests = state.apiKey
+    ? [api.getMe(), api.getApiKeys()]
+    : [Promise.reject(new Error("Signed out")), Promise.reject(new Error("Signed out"))];
   const [health, me, cloud, deployment, database, apiKeys] = await Promise.allSettled([
     api.getHealth(),
-    api.getMe(),
+    accountRequests[0],
     api.getCloudPlan(),
     api.getDeploymentPlan(),
     api.getDatabasePlan(),
-    api.getApiKeys()
+    accountRequests[1]
   ]);
 
   if (health.status === "fulfilled") {
@@ -255,6 +345,7 @@ async function refreshOverview() {
   }
 
   if (me.status === "fulfilled" && me.value.account) {
+    state.account = me.value.account;
     const orgName = me.value.account.organization?.name || me.value.account.orgName || "Default workspace";
     els.serviceStatus.textContent = `${els.serviceStatus.textContent} · ${orgName}`;
   }
@@ -432,6 +523,10 @@ function showCopied(button) {
 
 async function requestJson(url, options = {}, settings = { auth: true }) {
   const headers = new Headers(options.headers || {});
+
+  if (settings.auth !== false && !state.apiKey) {
+    throw new Error("Sign in required");
+  }
 
   if (settings.auth !== false && state.apiKey) {
     headers.set("x-ghostapi-key", state.apiKey);

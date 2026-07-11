@@ -118,6 +118,8 @@ function migrateSqlite(db: DatabaseSync): void {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
+      username TEXT UNIQUE,
+      password_hash TEXT,
       name TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -199,6 +201,8 @@ function migrateSqlite(db: DatabaseSync): void {
   addSqliteColumnIfMissing(db, "runs", "organization_id", "TEXT NOT NULL DEFAULT 'local-org'");
   addSqliteColumnIfMissing(db, "api_keys", "owner_user_id", "TEXT NOT NULL DEFAULT 'local-user'");
   addSqliteColumnIfMissing(db, "api_keys", "organization_id", "TEXT NOT NULL DEFAULT 'local-org'");
+  addSqliteColumnIfMissing(db, "users", "username", "TEXT");
+  addSqliteColumnIfMissing(db, "users", "password_hash", "TEXT");
   migrateSqliteWorkflowTenantKey(db);
 
   db.exec(commonIndexes);
@@ -211,6 +215,8 @@ async function migratePostgres(): Promise<void> {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
+      username TEXT UNIQUE,
+      password_hash TEXT,
       name TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -282,6 +288,8 @@ async function migratePostgres(): Promise<void> {
     );
   `);
 
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT");
   await migratePostgresWorkflowTenantKey(pool);
   await pool.query(commonIndexes);
 }
@@ -294,6 +302,7 @@ const commonIndexes = `
   CREATE INDEX IF NOT EXISTS idx_workflows_owner ON workflows(owner_user_id, updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_api_keys_owner ON api_keys(owner_user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_api_keys_revoked_at ON api_keys(revoked_at);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 `;
 
 function addSqliteColumnIfMissing(db: DatabaseSync, table: string, column: string, definition: string): void {

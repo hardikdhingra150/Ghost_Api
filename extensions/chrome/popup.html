@@ -27,6 +27,25 @@
     </div>
 
     <button id="checkServer" class="secondary">Check server connection</button>
+
+    <section class="account-card">
+      <strong>Account workspace</strong>
+      <p id="accountStatus">Sign in so saved APIs appear on your dashboard.</p>
+      <label>
+        Username
+        <input id="authUsername" autocomplete="username" />
+      </label>
+      <label>
+        Password
+        <input id="authPassword" type="password" autocomplete="current-password" />
+      </label>
+      <div class="quick-switch">
+        <button id="signInAccount">Sign in</button>
+        <button id="createAccount" class="secondary">Create</button>
+      </div>
+      <button id="logoutAccount" class="secondary">Log out</button>
+    </section>
+
     <button id="startRecorder">Open recorder on this page</button>
     <button id="openDashboard" class="secondary">Open dashboard</button>
 
