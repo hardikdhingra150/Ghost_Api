@@ -82,6 +82,7 @@ const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
 const extensionResponse = await fetch("http://127.0.0.1:4000/extension/ghostapi-capture.zip");
+const js = await jsResponse.text();
 
 if (!cssResponse.ok) {
   throw new Error(`Dashboard CSS returned HTTP ${cssResponse.status}`);
@@ -89,6 +90,10 @@ if (!cssResponse.ok) {
 
 if (!jsResponse.ok) {
   throw new Error(`Dashboard JS returned HTTP ${jsResponse.status}`);
+}
+
+if (!js.includes("/v1/workflows/portal-summary/run") || !js.includes("runDemoWorkflow")) {
+  throw new Error("Dashboard hero demo button must run the lightweight hosted demo workflow");
 }
 
 if (!logoResponse.ok) {

@@ -21,6 +21,7 @@ const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ credentials })
   }),
+  runDemoWorkflow: () => requestJson("/v1/workflows/portal-summary/run"),
   getWorkflows: () => requestJson("/v1/workflows")
 };
 
@@ -87,7 +88,7 @@ boot();
 
 function wireEvents() {
   els.runButton.addEventListener("click", runAttendance);
-  els.heroRunButton.addEventListener("click", runAttendance);
+  els.heroRunButton.addEventListener("click", runDemoWorkflow);
   els.refreshButton.addEventListener("click", loadRuns);
   els.heroRefreshButton.addEventListener("click", refreshOverview);
   els.prevRunsButton.addEventListener("click", () => changeRunPage(-1));
@@ -321,6 +322,22 @@ async function runAttendance() {
     await loadRuns();
   } catch (error) {
     setStatus("Error: " + error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runDemoWorkflow() {
+  setBusy(true);
+  setStatus("Running hosted demo workflow...");
+
+  try {
+    const payload = await api.runDemoWorkflow();
+    setStatus("Demo completed: " + payload.runId);
+    state.selectedRunId = payload.runId;
+    await loadRuns();
+  } catch (error) {
+    setStatus("Demo failed: " + error.message, true);
   } finally {
     setBusy(false);
   }
@@ -586,7 +603,7 @@ function setBusy(isBusy) {
 function setStatus(message, isError = false) {
   els.status.textContent = message;
   els.status.className = isError ? "failed" : "muted";
-  els.statusMetric.textContent = isError ? "Failed" : message.startsWith("Run completed") ? "Success" : message.includes("Refreshing") ? "Running" : "Ready";
+  els.statusMetric.textContent = isError ? "Failed" : message.includes("completed") ? "Success" : message.includes("Refreshing") || message.includes("Running") ? "Running" : "Ready";
 }
 
 function setWorkflowStatus(message, isError = false) {
