@@ -60,14 +60,18 @@ if (scopedMePayload.account?.user?.id !== accountPayload.account?.user?.id) {
   throw new Error("Expected x-ghostapi-key to resolve the API key owner workspace");
 }
 
+function createEphemeralAuthSecret(): string {
+  return `pw-${Date.now()}-${Math.random().toString(36).slice(2)}-Aa1`;
+}
+
 const authUsername = `clouduser${Date.now()}`;
-const authPassword = "test-password-123";
+const authSecret = createEphemeralAuthSecret();
 const signupResponse = await fetch("http://127.0.0.1:4000/v1/auth/signup", {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
     username: authUsername,
-    password: authPassword,
+    password: authSecret,
     organizationName: "Password Auth Workspace"
   })
 });
@@ -82,7 +86,7 @@ const loginResponse = await fetch("http://127.0.0.1:4000/v1/auth/login", {
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
     username: authUsername,
-    password: authPassword
+    password: authSecret
   })
 });
 const loginPayload = (await loginResponse.json()) as typeof accountPayload;

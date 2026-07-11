@@ -66,9 +66,9 @@ for (const expected of [
   "GHOSTAPI_PUBLIC_API_URL=http://127.0.0.1:4000",
   "GHOSTAPI_REQUIRE_API_KEY=false",
   "GHOSTAPI_DATABASE_DRIVER=sqlite",
-  "# GHOSTAPI_API_KEY=replace-with-generated-key",
-  "# DATABASE_URL=postgresql://example.invalid/ghostapi",
-  "# REDIS_URL=rediss://example.invalid:6379"
+  "# GHOSTAPI_API_KEY=<generated-api-key>",
+  "# DATABASE_URL=<postgres-connection-url>",
+  "# REDIS_URL=<redis-connection-url>"
 ]) {
   if (!envExample.includes(expected)) {
     throw new Error(`.env.example missing safe env template: ${expected}`);
