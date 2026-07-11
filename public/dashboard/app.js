@@ -16,11 +16,6 @@ const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(workflow)
   }),
-  runAttendance: (credentials) => requestJson("/v1/actions/get-attendance/run", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ credentials })
-  }),
   runDemoWorkflow: () => requestJson("/v1/workflows/portal-summary/run"),
   getWorkflows: () => requestJson("/v1/workflows")
 };
@@ -38,8 +33,6 @@ const state = {
 };
 
 const els = {
-  username: document.querySelector("#username"),
-  password: document.querySelector("#password"),
   runButton: document.querySelector("#runButton"),
   heroRunButton: document.querySelector("#heroRunButton"),
   refreshButton: document.querySelector("#refreshButton"),
@@ -87,7 +80,7 @@ wireEvents();
 boot();
 
 function wireEvents() {
-  els.runButton.addEventListener("click", runAttendance);
+  els.runButton.addEventListener("click", runDemoWorkflow);
   els.heroRunButton.addEventListener("click", runDemoWorkflow);
   els.refreshButton.addEventListener("click", loadRuns);
   els.heroRefreshButton.addEventListener("click", refreshOverview);
@@ -307,26 +300,6 @@ async function requestJson(url, options) {
   return payload;
 }
 
-async function runAttendance() {
-  setBusy(true);
-  setStatus("Running browser workflow...");
-
-  try {
-    const payload = await api.runAttendance({
-      username: els.username.value || undefined,
-      password: els.password.value || undefined
-    });
-
-    setStatus("Run completed: " + payload.runId);
-    state.selectedRunId = payload.runId;
-    await loadRuns();
-  } catch (error) {
-    setStatus("Error: " + error.message, true);
-  } finally {
-    setBusy(false);
-  }
-}
-
 async function runDemoWorkflow() {
   setBusy(true);
   setStatus("Running hosted demo workflow...");
@@ -500,7 +473,7 @@ function renderRunPager() {
 
 function renderRuns() {
   if (state.runs.length === 0) {
-    els.runs.innerHTML = '<p class="empty">No runs yet. Run the demo workflow or capture a website task to see automation history here.</p>';
+    els.runs.innerHTML = '<p class="empty">No runs yet. Run the hosted demo workflow or capture a website task to see automation history here.</p>';
     return;
   }
 

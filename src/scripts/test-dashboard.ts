@@ -67,6 +67,12 @@ for (const forbidden of ["Week 11", "Week 12", "Week 13", "Week 14", "Local prot
   }
 }
 
+for (const forbidden of ["Optional demo username", "Optional demo password", "autocomplete=\"username\"", "autocomplete=\"current-password\""]) {
+  if (html.includes(forbidden)) {
+    throw new Error(`Dashboard HTML still included old credential fields: ${forbidden}`);
+  }
+}
+
 for (const expected of [
   "Public API URL",
   "/extension/ghostapi-capture.zip",
@@ -94,6 +100,10 @@ if (!jsResponse.ok) {
 
 if (!js.includes("/v1/workflows/portal-summary/run") || !js.includes("runDemoWorkflow")) {
   throw new Error("Dashboard hero demo button must run the lightweight hosted demo workflow");
+}
+
+if (js.includes("runAttendance") || js.includes("api.runAttendance")) {
+  throw new Error("Dashboard public demo should not call the old credential-based attendance runner");
 }
 
 if (!logoResponse.ok) {
