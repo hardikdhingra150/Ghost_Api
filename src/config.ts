@@ -49,6 +49,13 @@ export const config = {
   security: {
     apiKey: process.env.GHOSTAPI_API_KEY,
     requireApiKey: process.env.GHOSTAPI_REQUIRE_API_KEY === "true"
+  },
+  auth: {
+    google: {
+      clientId: process.env.GHOSTAPI_GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GHOSTAPI_GOOGLE_CLIENT_SECRET,
+      redirectUri: process.env.GHOSTAPI_GOOGLE_REDIRECT_URI ?? `${publicApiUrl.replace(/\/$/, "")}/v1/auth/google/callback`
+    }
   }
 };
 

@@ -95,6 +95,23 @@ if (loginPayload.account?.user?.id !== signupPayload.account?.user?.id) {
   throw new Error("Expected login to return the same account created by signup");
 }
 
+const googleStartResponse = await fetch("http://127.0.0.1:4000/v1/auth/google/start", {
+  redirect: "manual"
+});
+const googleStartPayload = (await googleStartResponse.json()) as {
+  ok?: boolean;
+  error?: string;
+  requiredEnvironment?: string[];
+};
+
+if (googleStartResponse.status !== 501 || googleStartPayload.error !== "Google sign-in is not configured") {
+  throw new Error("Expected Google sign-in to report missing OAuth environment in local tests");
+}
+
+if (!googleStartPayload.requiredEnvironment?.includes("GHOSTAPI_GOOGLE_CLIENT_ID")) {
+  throw new Error("Expected Google sign-in setup response to list required environment variables");
+}
+
 const secondAccountResponse = await fetch("http://127.0.0.1:4000/v1/accounts", {
   method: "POST",
   headers: { "content-type": "application/json" },

@@ -9,6 +9,7 @@ import { config, mockPortalCredentials } from "../config.js";
 import { sendPublicFile } from "../http/staticFiles.js";
 import {
   createAccount,
+  createOrGetOAuthAccount,
   createPasswordAccount,
   defaultTenantContext,
   getAccount,
@@ -72,6 +73,8 @@ const publicV1Routes = new Set([
   "/v1/accounts",
   "/v1/auth/signup",
   "/v1/auth/login",
+  "/v1/auth/google/start",
+  "/v1/auth/google/callback",
   "/v1/cloud/plan",
   "/v1/deployment/plan",
   "/v1/database/plan"
@@ -269,6 +272,89 @@ export function createGhostApi(): FastifyInstance {
     };
   });
 
+  app.get("/v1/auth/google/start", async (_request, reply) => {
+    if (!config.auth.google.clientId || !config.auth.google.clientSecret) {
+      return reply.code(501).send({
+        ok: false,
+        error: "Google sign-in is not configured",
+        requiredEnvironment: [
+          "GHOSTAPI_GOOGLE_CLIENT_ID",
+          "GHOSTAPI_GOOGLE_CLIENT_SECRET",
+          "GHOSTAPI_GOOGLE_REDIRECT_URI"
+        ]
+      });
+    }
+
+    const params = new URLSearchParams({
+      client_id: config.auth.google.clientId,
+      redirect_uri: config.auth.google.redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      access_type: "online",
+      prompt: "select_account"
+    });
+
+    return reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  });
+
+  app.get("/v1/auth/google/callback", async (request, reply) => {
+    const query = request.query as { code?: string; error?: string };
+
+    if (query.error) {
+      return reply.redirect(`/dashboard#auth_error=${encodeURIComponent(query.error)}`);
+    }
+
+    if (!query.code) {
+      return reply.redirect("/dashboard#auth_error=missing_google_code");
+    }
+
+    if (!config.auth.google.clientId || !config.auth.google.clientSecret) {
+      return reply.redirect("/dashboard#auth_error=google_not_configured");
+    }
+
+    try {
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code: query.code,
+          client_id: config.auth.google.clientId,
+          client_secret: config.auth.google.clientSecret,
+          redirect_uri: config.auth.google.redirectUri,
+          grant_type: "authorization_code"
+        })
+      });
+      const tokenPayload = await tokenResponse.json() as { access_token?: string; error?: string; error_description?: string };
+
+      if (!tokenResponse.ok || !tokenPayload.access_token) {
+        throw new Error(tokenPayload.error_description || tokenPayload.error || "Google token exchange failed");
+      }
+
+      const userInfoResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+        headers: {
+          authorization: `Bearer ${tokenPayload.access_token}`
+        }
+      });
+      const userInfo = await userInfoResponse.json() as { email?: string; name?: string; error?: string };
+
+      if (!userInfoResponse.ok || !userInfo.email) {
+        throw new Error(userInfo.error || "Google userinfo did not include an email");
+      }
+
+      const { account, context } = await createOrGetOAuthAccount({
+        email: userInfo.email,
+        name: userInfo.name,
+        organizationName: `${userInfo.name || userInfo.email}'s GhostAPI Workspace`
+      });
+      const apiKey = await createApiKey("Google dashboard session", context);
+      const encodedSession = Buffer.from(JSON.stringify({ account, apiKey }), "utf8").toString("base64url");
+
+      return reply.redirect(`/dashboard#ghostapi_session=${encodedSession}`);
+    } catch (error) {
+      return reply.redirect(`/dashboard#auth_error=${encodeURIComponent(error instanceof Error ? error.message : String(error))}`);
+    }
+  });
+
   app.get("/v1/cloud/plan", async () => {
     const postgresConfigured = Boolean(config.deployment.databaseUrl);
     const postgresDriverSelected = config.storage.databaseDriver === "postgres";
@@ -288,7 +374,7 @@ export function createGhostApi(): FastifyInstance {
         productionDatabaseMigration: activeStore === "postgres",
         apiKeyTenantIsolation: true,
         accountBootstrapApi: true,
-        hostedAuth: false,
+        hostedAuth: Boolean(config.auth.google.clientId && config.auth.google.clientSecret),
         encryptedCredentialVault: false,
         backgroundWorkerQueue: false,
         chromeWebStoreDistribution: false
@@ -297,7 +383,7 @@ export function createGhostApi(): FastifyInstance {
         "Run the SQLite-to-Postgres migration once after configuring DATABASE_URL",
         "Enable GHOSTAPI_DATABASE_DRIVER=postgres on Render",
         "Turn on GHOSTAPI_REQUIRE_API_KEY=true after account bootstrap is tested",
-        "Hosted email/OAuth sign-in",
+        "Configure Google OAuth env vars for hosted sign-in",
         "Encrypted credential vault",
         "Queue-backed browser workers",
         "Chrome Web Store OAuth onboarding"
@@ -340,7 +426,15 @@ export function createGhostApi(): FastifyInstance {
         "GHOSTAPI_REQUIRE_API_KEY",
         "GHOSTAPI_API_KEY"
       ],
-      futureEnvironment: ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "REDIS_URL"],
+      futureEnvironment: [
+        "DATABASE_URL",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "REDIS_URL",
+        "GHOSTAPI_GOOGLE_CLIENT_ID",
+        "GHOSTAPI_GOOGLE_CLIENT_SECRET",
+        "GHOSTAPI_GOOGLE_REDIRECT_URI"
+      ],
       verificationCommands: ["npm run check", "npm run test:deployment", "npm run test:extension", "npm run package:extension"]
     };
   });

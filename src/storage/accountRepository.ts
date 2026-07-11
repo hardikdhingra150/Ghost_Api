@@ -126,6 +126,60 @@ export async function createPasswordAccount(input: {
   return getAccount(context);
 }
 
+export async function createOrGetOAuthAccount(input: {
+  email: string;
+  name?: string;
+  organizationName?: string;
+}): Promise<{ account: GhostApiAccount; context: GhostApiTenantContext }> {
+  const existingUser = await dbGet<UserRow>("SELECT * FROM users WHERE email = ?", [input.email]);
+
+  if (existingUser) {
+    const membership = await dbGet<{ organization_id: string; role: GhostApiTenantContext["role"] }>(
+      "SELECT organization_id, role FROM organization_members WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+      [existingUser.id]
+    );
+
+    if (!membership) {
+      throw new Error("OAuth account exists without an organization membership");
+    }
+
+    const context: GhostApiTenantContext = {
+      userId: existingUser.id,
+      organizationId: membership.organization_id,
+      role: membership.role
+    };
+
+    return {
+      account: await getAccount(context),
+      context
+    };
+  }
+
+  const now = new Date().toISOString();
+  const context: GhostApiTenantContext = {
+    userId: crypto.randomUUID(),
+    organizationId: crypto.randomUUID(),
+    role: "owner"
+  };
+
+  await ensureAccount({
+    userId: context.userId,
+    organizationId: context.organizationId,
+    email: input.email,
+    username: null,
+    passwordHash: null,
+    name: input.name || input.email.split("@")[0] || "Google User",
+    organizationName: input.organizationName || "Google GhostAPI Workspace",
+    role: context.role,
+    createdAt: now
+  });
+
+  return {
+    account: await getAccount(context),
+    context
+  };
+}
+
 export async function verifyPasswordAccount(input: {
   username: string;
   password: string;

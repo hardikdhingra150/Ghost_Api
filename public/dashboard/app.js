@@ -100,6 +100,7 @@ const els = {
   authPassword: document.querySelector("#authPassword"),
   authSignInButton: document.querySelector("#authSignInButton"),
   authCreateButton: document.querySelector("#authCreateButton"),
+  authGoogleButton: document.querySelector("#authGoogleButton"),
   authLogoutButton: document.querySelector("#authLogoutButton")
 };
 
@@ -123,6 +124,9 @@ function wireEvents() {
   });
   els.authSignInButton.addEventListener("click", () => authenticate("signin"));
   els.authCreateButton.addEventListener("click", () => authenticate("signup"));
+  els.authGoogleButton.addEventListener("click", () => {
+    window.location.href = "/v1/auth/google/start";
+  });
   els.authLogoutButton.addEventListener("click", logout);
   els.authPassword.addEventListener("keydown", (event) => {
     if (event.key === "Enter") authenticate("signin");
@@ -255,7 +259,40 @@ function renderSignedOutState() {
 
 function readWorkspaceFromHash() {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const encodedSession = hash.get("ghostapi_session");
   const key = hash.get("ghostapi_key");
+  const authError = hash.get("auth_error");
+
+  if (authError) {
+    hash.delete("auth_error");
+    const nextHash = hash.toString();
+    window.history.replaceState(null, "", window.location.pathname + window.location.search + (nextHash ? `#${nextHash}` : ""));
+    window.setTimeout(() => {
+      els.authStatus.textContent = "Google sign-in failed: " + authError;
+    }, 0);
+  }
+
+  if (encodedSession) {
+    hash.delete("ghostapi_session");
+    const nextHash = hash.toString();
+    window.history.replaceState(null, "", window.location.pathname + window.location.search + (nextHash ? `#${nextHash}` : ""));
+
+    try {
+      const session = JSON.parse(decodeBase64UrlJson(encodedSession));
+
+      if (session?.apiKey?.key) {
+        return {
+          apiKey: session.apiKey,
+          account: session.account || null,
+          createdAt: new Date().toISOString()
+        };
+      }
+    } catch {
+      window.setTimeout(() => {
+        els.authStatus.textContent = "Google sign-in failed: invalid session response.";
+      }, 0);
+    }
+  }
 
   if (!key) return null;
 
@@ -268,6 +305,14 @@ function readWorkspaceFromHash() {
     account: null,
     createdAt: new Date().toISOString()
   };
+}
+
+function decodeBase64UrlJson(value) {
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 function readStoredWorkspace() {
@@ -539,7 +584,8 @@ async function requestJson(url, options = {}, settings = { auth: true }) {
   const payload = await response.json();
 
   if (!response.ok || payload.ok === false) {
-    const error = new Error(payload.details || payload.error || `Request failed: ${response.status}`);
+    const details = typeof payload.details === "string" ? payload.details : payload.details ? JSON.stringify(payload.details) : "";
+    const error = new Error(details || payload.error || `Request failed: ${response.status}`);
     error.payload = payload;
     throw error;
   }

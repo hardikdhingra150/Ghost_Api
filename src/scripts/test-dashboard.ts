@@ -78,7 +78,8 @@ for (const expected of [
   "/extension/ghostapi-capture.zip",
   "/v1/database/plan",
   "/v1/workflows",
-  "Save selected API"
+  "Save selected API",
+  "Continue with Google"
 ]) {
   if (!html.includes(expected)) {
     throw new Error(`Dashboard HTML did not include production dashboard text: ${expected}`);
@@ -122,7 +123,15 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
   throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
-for (const expected of ["ghostapi.dashboard.workspace.v1", "x-ghostapi-key", "/v1/auth/signup", "/v1/auth/login", "ghostapi_key"]) {
+for (const expected of [
+  "ghostapi.dashboard.workspace.v1",
+  "x-ghostapi-key",
+  "/v1/auth/signup",
+  "/v1/auth/login",
+  "/v1/auth/google/start",
+  "ghostapi_session",
+  "ghostapi_key"
+]) {
   if (!js.includes(expected)) {
     throw new Error(`Dashboard JS must isolate browser workspaces with ${expected}`);
   }
@@ -172,7 +181,8 @@ console.log(
         "Database readiness",
         "Public API URL",
         "/extension/ghostapi-capture.zip",
-        "Save selected API"
+        "Save selected API",
+        "Continue with Google"
       ]
     },
     null,
