@@ -504,6 +504,125 @@ export function createGhostApi(): FastifyInstance {
     };
   });
 
+  app.get("/v1/workflows/:workflowId/versions", async (request, reply) => {
+    const params = request.params as { workflowId: string };
+
+    try {
+      return {
+        ok: true,
+        versions: await listWorkflowVersions(params.workflowId, tenantContext(request))
+      };
+    } catch (error) {
+      return reply.code(404).send({
+        ok: false,
+        error: error instanceof Error ? error.message : `Workflow "${params.workflowId}" not found`
+      });
+    }
+  });
+
+  app.get("/v1/workflows/:workflowId/versions/:version", async (request, reply) => {
+    const params = request.params as { workflowId: string; version: string };
+    const version = Number(params.version);
+
+    if (!Number.isInteger(version) || version <= 0) {
+      return reply.code(400).send({
+        ok: false,
+        error: "Version must be a positive integer"
+      });
+    }
+
+    try {
+      const workflow = await getWorkflowVersion(params.workflowId, version, tenantContext(request));
+
+      if (!workflow) {
+        return reply.code(404).send({
+          ok: false,
+          error: `Workflow version ${version} not found`
+        });
+      }
+
+      return {
+        ok: true,
+        workflow
+      };
+    } catch (error) {
+      return reply.code(404).send({
+        ok: false,
+        error: error instanceof Error ? error.message : `Workflow "${params.workflowId}" not found`
+      });
+    }
+  });
+
+  app.post("/v1/workflows/:workflowId/versions/:version/restore", async (request, reply) => {
+    const params = request.params as { workflowId: string; version: string };
+    const version = Number(params.version);
+
+    if (!Number.isInteger(version) || version <= 0) {
+      return reply.code(400).send({
+        ok: false,
+        error: "Version must be a positive integer"
+      });
+    }
+
+    try {
+      const workflow = await restoreWorkflowVersion(params.workflowId, version, tenantContext(request));
+
+      if (!workflow) {
+        return reply.code(404).send({
+          ok: false,
+          error: `Workflow version ${version} not found`
+        });
+      }
+
+      return {
+        ok: true,
+        workflow
+      };
+    } catch (error) {
+      return reply.code(404).send({
+        ok: false,
+        error: error instanceof Error ? error.message : `Workflow "${params.workflowId}" not found`
+      });
+    }
+  });
+
+  app.get("/v1/workflows/:workflowId/diff", async (request, reply) => {
+    const params = request.params as { workflowId: string };
+    const query = request.query as { from?: string; to?: string };
+    const from = Number(query.from);
+    const to = Number(query.to);
+
+    if (!Number.isInteger(from) || !Number.isInteger(to) || from <= 0 || to <= 0) {
+      return reply.code(400).send({
+        ok: false,
+        error: "Query params from and to must be positive integers"
+      });
+    }
+
+    try {
+      const diff = await diffWorkflowVersions(params.workflowId, from, to, tenantContext(request));
+
+      if (!diff) {
+        return reply.code(404).send({
+          ok: false,
+          error: "One or both workflow versions were not found"
+        });
+      }
+
+      return {
+        ok: true,
+        from,
+        to,
+        changes: diff.changes
+      };
+    } catch (error) {
+      return reply.code(404).send({
+        ok: false,
+        error: error instanceof Error ? error.message : `Workflow "${params.workflowId}" not found`
+      });
+    }
+  });
+
   app.get("/v1/workflows/:workflowId", async (request, reply) => {
     const params = request.params as { workflowId: string };
 

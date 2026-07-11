@@ -474,6 +474,11 @@ dd {
   margin-bottom: 18px;
 }
 
+.section-note {
+  max-width: 880px;
+  margin: 0 0 18px;
+}
+
 .step-card,
 .mini-card,
 .command-grid article,
@@ -501,6 +506,31 @@ dd {
 
 .mini-card {
   margin-bottom: 14px;
+}
+
+.workflow-card {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.workflow-card:hover,
+.workflow-card.active {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 var(--line);
+  background: var(--green);
+}
+
+.workflow-card.active {
+  outline: 4px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .security-list {

@@ -6,12 +6,12 @@ const api = {
   getDatabasePlan: () => requestJson("/v1/database/plan"),
   getApiKeys: () => requestJson("/v1/api-keys"),
   getRuns: (limit, offset) => requestJson(`/v1/runs/page?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
-  getWorkflow: () => requestJson("/v1/actions/get-attendance/workflow"),
-  getWorkflowVersions: () => requestJson("/v1/actions/get-attendance/workflow/versions"),
-  getWorkflowVersion: (version) => requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}`),
-  restoreWorkflowVersion: (version) => requestJson(`/v1/actions/get-attendance/workflow/versions/${encodeURIComponent(version)}/restore`, { method: "POST" }),
-  diffWorkflowVersions: (from, to) => requestJson(`/v1/actions/get-attendance/workflow/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
-  saveWorkflow: (workflow) => requestJson("/v1/actions/get-attendance/workflow", {
+  getWorkflow: (workflowId) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}`),
+  getWorkflowVersions: (workflowId) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}/versions`),
+  getWorkflowVersion: (workflowId, version) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}/versions/${encodeURIComponent(version)}`),
+  restoreWorkflowVersion: (workflowId, version) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}/versions/${encodeURIComponent(version)}/restore`, { method: "POST" }),
+  diffWorkflowVersions: (workflowId, from, to) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  saveWorkflow: (workflowId, workflow) => requestJson(`/v1/workflows/${encodeURIComponent(workflowId)}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(workflow)
@@ -27,6 +27,8 @@ const state = {
   runLimit: 10,
   runOffset: 0,
   runTotal: 0,
+  selectedWorkflowId: null,
+  workflows: [],
   workflowVersion: null,
   workflowVersions: [],
   publicApiUrl: window.location.origin
@@ -86,7 +88,7 @@ function wireEvents() {
   els.heroRefreshButton.addEventListener("click", refreshOverview);
   els.prevRunsButton.addEventListener("click", () => changeRunPage(-1));
   els.nextRunsButton.addEventListener("click", () => changeRunPage(1));
-  els.loadWorkflowButton.addEventListener("click", loadWorkflow);
+  els.loadWorkflowButton.addEventListener("click", reloadSavedApis);
   els.saveWorkflowButton.addEventListener("click", saveWorkflow);
   els.loadVersionButton.addEventListener("click", loadSelectedWorkflowVersion);
   els.restoreVersionButton.addEventListener("click", restoreSelectedWorkflowVersion);
@@ -100,7 +102,8 @@ function wireEvents() {
 }
 
 async function boot() {
-  await Promise.allSettled([refreshOverview(), loadRuns(), loadWorkflow(), loadWorkflows()]);
+  await Promise.allSettled([refreshOverview(), loadRuns()]);
+  await loadWorkflows();
 }
 
 async function refreshOverview() {
@@ -221,27 +224,65 @@ async function loadWorkflows() {
   try {
     const payload = await api.getWorkflows();
     const workflows = payload.workflows || [];
+    state.workflows = workflows;
     els.workflowsMetric.textContent = String(workflows.length);
-    els.workflowCards.innerHTML = workflows.length
-      ? workflows.map(renderWorkflowCard).join("")
-      : '<p class="empty">No workflows have been recorded yet. Install the recorder, capture a website task, and save it as your first API.</p>';
+
+    if (!workflows.length) {
+      state.selectedWorkflowId = null;
+      state.workflowVersion = null;
+      state.workflowVersions = [];
+      els.workflowCards.innerHTML = '<p class="empty">No saved APIs yet. Install the recorder, capture a website task, and save it as your first API.</p>';
+      els.workflowJson.value = "No saved API selected yet.";
+      els.workflowVersionSelect.innerHTML = '<option value="">No versions</option>';
+      return;
+    }
+
+    if (!state.selectedWorkflowId || !workflows.some((workflow) => workflow.id === state.selectedWorkflowId)) {
+      state.selectedWorkflowId = workflows[0].id;
+    }
+
+    renderWorkflowCards();
+    await loadWorkflow(state.selectedWorkflowId);
   } catch (error) {
     els.workflowCards.innerHTML = `<p class="failed">Could not load workflows: ${escapeHtml(error.message)}</p>`;
   }
+}
+
+async function reloadSavedApis() {
+  setWorkflowStatus("Reloading saved APIs...");
+  await loadWorkflows();
+}
+
+function renderWorkflowCards() {
+  els.workflowCards.innerHTML = state.workflows.map(renderWorkflowCard).join("");
+  els.workflowCards.querySelectorAll(".workflow-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      const workflowId = button.dataset.workflowId;
+      if (!workflowId) return;
+
+      state.selectedWorkflowId = workflowId;
+      renderWorkflowCards();
+      loadWorkflow(workflowId).catch((error) => setWorkflowStatus("Load failed: " + error.message, true));
+    });
+  });
 }
 
 function renderWorkflowCard(workflow) {
   const endpoint = workflow.id === "get-attendance"
     ? "/v1/actions/get-attendance/run"
     : `/v1/workflows/${workflow.id}/run`;
-  return `<article class="mini-card">
+  const active = workflow.id === state.selectedWorkflowId ? " active" : "";
+  return `<button class="mini-card workflow-card${active}" data-workflow-id="${escapeHtml(workflow.id)}" type="button">
     <div class="row space">
-      <h3>${escapeHtml(workflow.name || workflow.id)}</h3>
+      <div>
+        <h3>${escapeHtml(workflow.name || workflow.id)}</h3>
+        <span class="muted tiny">${escapeHtml(workflow.portal || "captured website")}</span>
+      </div>
       <span class="badge">v${escapeHtml(String(workflow.version || 1))}</span>
     </div>
     <p>${escapeHtml(workflow.description || "Recorded browser workflow ready to run as an API.")}</p>
     <code>${escapeHtml(endpoint)}</code>
-  </article>`;
+  </button>`;
 }
 
 function updateCommandExamples(baseUrl) {
@@ -354,15 +395,22 @@ function changeRunPage(direction) {
   loadRuns().catch((error) => setStatus("Error: " + error.message, true));
 }
 
-async function loadWorkflow() {
+async function loadWorkflow(workflowId = state.selectedWorkflowId) {
+  if (!workflowId) {
+    return setWorkflowStatus("Select a saved API first.", true);
+  }
+
   try {
-    const payload = await api.getWorkflow();
+    state.selectedWorkflowId = workflowId;
+    const payload = await api.getWorkflow(workflowId);
     const workflow = payload.workflow || payload;
+    state.selectedWorkflowId = workflow.id;
     state.workflowVersion = workflow.version;
     state.workflowStepCount = Array.isArray(workflow.steps) ? workflow.steps.length : 0;
     els.stepsMetric.textContent = String(state.workflowStepCount);
     els.workflowJson.value = JSON.stringify(workflow, null, 2);
-    setWorkflowStatus("Workflow loaded.");
+    setWorkflowStatus(`Loaded ${workflow.name || workflow.id}.`);
+    renderWorkflowCards();
     await loadWorkflowVersions();
   } catch (error) {
     els.stepsMetric.textContent = "-";
@@ -376,8 +424,13 @@ async function saveWorkflow() {
 
   try {
     const workflow = JSON.parse(els.workflowJson.value);
-    const payload = await api.saveWorkflow(workflow);
+    if (!workflow.id) {
+      throw new Error("Workflow JSON must include an id.");
+    }
+
+    const payload = await api.saveWorkflow(workflow.id, workflow);
     const savedWorkflow = payload.workflow;
+    state.selectedWorkflowId = savedWorkflow.id;
     state.workflowVersion = savedWorkflow.version;
     state.workflowStepCount = Array.isArray(savedWorkflow.steps) ? savedWorkflow.steps.length : 0;
     els.stepsMetric.textContent = String(state.workflowStepCount);
@@ -390,8 +443,13 @@ async function saveWorkflow() {
 }
 
 async function loadWorkflowVersions() {
+  if (!state.selectedWorkflowId) {
+    els.workflowVersionSelect.innerHTML = '<option value="">No saved API selected</option>';
+    return;
+  }
+
   try {
-    const payload = await api.getWorkflowVersions();
+    const payload = await api.getWorkflowVersions(state.selectedWorkflowId);
     state.workflowVersions = payload.versions || [];
     els.workflowVersionSelect.innerHTML = state.workflowVersions
       .map((item) => `<option value="${escapeHtml(String(item.version))}">v${escapeHtml(String(item.version))} - ${new Date(item.createdAt).toLocaleString()}</option>`)
@@ -413,7 +471,7 @@ async function loadSelectedWorkflowVersion() {
   }
 
   try {
-    const payload = await api.getWorkflowVersion(version);
+    const payload = await api.getWorkflowVersion(state.selectedWorkflowId, version);
     els.workflowJson.value = JSON.stringify(payload.workflow, null, 2);
     state.workflowVersion = payload.workflow.version;
     setWorkflowStatus("Loaded workflow version " + version + ".");
@@ -430,8 +488,9 @@ async function restoreSelectedWorkflowVersion() {
   }
 
   try {
-    const payload = await api.restoreWorkflowVersion(version);
+    const payload = await api.restoreWorkflowVersion(state.selectedWorkflowId, version);
     els.workflowJson.value = JSON.stringify(payload.workflow, null, 2);
+    state.selectedWorkflowId = payload.workflow.id;
     state.workflowVersion = payload.workflow.version;
     setWorkflowStatus("Restored version " + version + " as version " + payload.workflow.version + ".");
     await Promise.all([loadWorkflowVersions(), loadWorkflows()]);
@@ -444,12 +503,12 @@ async function diffSelectedWorkflowVersion() {
   const selected = selectedWorkflowVersion();
   const current = state.workflowVersion;
 
-  if (!selected || !current) {
+  if (!state.selectedWorkflowId || !selected || !current) {
     return setWorkflowStatus("Need a selected version and current workflow version to diff.", true);
   }
 
   try {
-    const payload = await api.diffWorkflowVersions(selected, current);
+    const payload = await api.diffWorkflowVersions(state.selectedWorkflowId, selected, current);
     els.workflowDiff.textContent = JSON.stringify(payload.changes, null, 2);
     setWorkflowStatus("Diff loaded: v" + selected + " to v" + current + ".");
   } catch (error) {

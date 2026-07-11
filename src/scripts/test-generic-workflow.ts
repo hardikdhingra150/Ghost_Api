@@ -53,6 +53,17 @@ if (!trailingSlashResponse.ok || !trailingSlashPayload.ok || trailingSlashPayloa
   throw new Error("Generic workflow trailing slash route did not return the workflow");
 }
 
+const versionsResponse = await fetch("http://127.0.0.1:4000/v1/workflows/portal-summary/versions");
+const versionsPayload = (await versionsResponse.json()) as {
+  ok?: boolean;
+  versions?: Array<{ version: number }>;
+  error?: string;
+};
+
+if (!versionsResponse.ok || !versionsPayload.ok || !versionsPayload.versions?.length) {
+  throw new Error(`Generic workflow versions route failed: ${versionsPayload.error ?? versionsResponse.statusText}`);
+}
+
 console.log(
   JSON.stringify(
     {
@@ -61,6 +72,7 @@ console.log(
       runId: payload.runId,
       getRunId: getPayload.runId,
       trailingSlashWorkflowId: trailingSlashPayload.workflow.id,
+      versionCount: versionsPayload.versions.length,
       outputKeys: Object.keys(payload.result?.data ?? {}),
       contains: "Welcome, Hardik"
     },

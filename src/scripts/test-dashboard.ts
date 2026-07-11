@@ -29,8 +29,8 @@ if (!html.includes("API key status")) {
   throw new Error("Dashboard HTML did not include API key status");
 }
 
-if (!html.includes("Workflow builder")) {
-  throw new Error("Dashboard HTML did not include workflow builder");
+if (!html.includes("Saved API library")) {
+  throw new Error("Dashboard HTML did not include saved API library");
 }
 
 if (!html.includes("Run history")) {
@@ -77,7 +77,8 @@ for (const expected of [
   "Public API URL",
   "/extension/ghostapi-capture.zip",
   "/v1/database/plan",
-  "/v1/workflows"
+  "/v1/workflows",
+  "Save selected API"
 ]) {
   if (!html.includes(expected)) {
     throw new Error(`Dashboard HTML did not include production dashboard text: ${expected}`);
@@ -109,6 +110,10 @@ if (!css.includes("textarea.workflow-editor:focus") || !css.includes("outline: 4
 
 if (!js.includes("/v1/workflows/portal-summary/run") || !js.includes("runDemoWorkflow")) {
   throw new Error("Dashboard hero demo button must run the lightweight hosted demo workflow");
+}
+
+if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.includes("selectedWorkflowId")) {
+  throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
 if (js.includes("runAttendance") || js.includes("api.runAttendance")) {
@@ -146,7 +151,7 @@ console.log(
         "Start capturing",
         "Chrome extension",
         "API key status",
-        "Workflow builder",
+        "Saved API library",
         "Run history",
         "Deployment and environment",
         "Download extension",
@@ -154,7 +159,8 @@ console.log(
         "Production API checking",
         "Database readiness",
         "Public API URL",
-        "/extension/ghostapi-capture.zip"
+        "/extension/ghostapi-capture.zip",
+        "Save selected API"
       ]
     },
     null,
