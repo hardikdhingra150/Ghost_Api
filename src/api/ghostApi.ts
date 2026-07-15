@@ -129,7 +129,7 @@ export function createGhostApi(): FastifyInstance {
   });
 
   app.get("/", async (_request, reply) => {
-    return sendPublicFile(reply, "dashboard/index.html");
+    return sendPublicFile(reply, "dashboard/login.html");
   });
 
   app.get("/dashboard", async (_request, reply) => {
@@ -301,15 +301,15 @@ export function createGhostApi(): FastifyInstance {
     const query = request.query as { code?: string; error?: string };
 
     if (query.error) {
-      return reply.redirect(`/dashboard#auth_error=${encodeURIComponent(query.error)}`);
+      return reply.redirect(`/dashboard/login.html#auth_error=${encodeURIComponent(query.error)}`);
     }
 
     if (!query.code) {
-      return reply.redirect("/dashboard#auth_error=missing_google_code");
+      return reply.redirect("/dashboard/login.html#auth_error=missing_google_code");
     }
 
     if (!config.auth.google.clientId || !config.auth.google.clientSecret) {
-      return reply.redirect("/dashboard#auth_error=google_not_configured");
+      return reply.redirect("/dashboard/login.html#auth_error=google_not_configured");
     }
 
     try {
@@ -351,7 +351,7 @@ export function createGhostApi(): FastifyInstance {
 
       return reply.redirect(`/dashboard#ghostapi_session=${encodedSession}`);
     } catch (error) {
-      return reply.redirect(`/dashboard#auth_error=${encodeURIComponent(error instanceof Error ? error.message : String(error))}`);
+      return reply.redirect(`/dashboard/login.html#auth_error=${encodeURIComponent(error instanceof Error ? error.message : String(error))}`);
     }
   });
 

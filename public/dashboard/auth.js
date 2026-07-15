@@ -9,6 +9,8 @@ const els = {
   google: document.querySelector("#authGoogleButton")
 };
 
+showHashError();
+
 els.submit.addEventListener("click", authenticate);
 els.google.addEventListener("click", () => {
   window.location.href = "/v1/auth/google/start";
@@ -65,4 +67,16 @@ function setStatus(message) {
 function setLoading(isLoading) {
   els.submit.disabled = isLoading;
   els.google.disabled = isLoading;
+}
+
+function showHashError() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const authError = hash.get("auth_error");
+
+  if (!authError) return;
+
+  hash.delete("auth_error");
+  const nextHash = hash.toString();
+  window.history.replaceState(null, "", window.location.pathname + window.location.search + (nextHash ? `#${nextHash}` : ""));
+  setStatus("Google sign-in failed: " + authError);
 }

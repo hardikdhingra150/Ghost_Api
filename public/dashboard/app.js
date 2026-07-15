@@ -130,13 +130,13 @@ function wireEvents() {
 async function boot() {
   const signedIn = await restoreDashboardWorkspace();
   setAuthUi();
-  await refreshOverview();
 
   if (!signedIn) {
-    renderSignedOutState();
+    window.location.replace("/dashboard/login.html");
     return;
   }
 
+  await refreshOverview();
   await Promise.allSettled([loadRuns(), loadWorkflows()]);
 }
 
@@ -188,9 +188,7 @@ function logout() {
   state.selectedRunId = null;
   state.selectedWorkflowId = null;
   clearStoredWorkspace();
-  setAuthUi();
-  renderSignedOutState();
-  setStatus("Signed out.");
+  window.location.href = "/dashboard/login.html";
 }
 
 function setAuthUi() {

@@ -1,5 +1,11 @@
+const rootResponse = await fetch("http://127.0.0.1:4000/");
+const rootHtml = await rootResponse.text();
 const response = await fetch("http://127.0.0.1:4000/dashboard");
 const html = await response.text();
+
+if (!rootResponse.ok || !rootHtml.includes("Sign in - GhostAPI")) {
+  throw new Error("Root route should serve the login page first");
+}
 
 if (!response.ok) {
   throw new Error(`Dashboard returned HTTP ${response.status}`);
@@ -148,9 +154,11 @@ for (const expected of [
 for (const expected of [
   "Sign in to your API workspace",
   "Create your GhostAPI account",
+  "auth-logo-panel",
   "/v1/auth/signup",
   "/v1/auth/login",
   "/v1/auth/google/start",
+  "auth_error",
   "ghostapi.dashboard.workspace.v1"
 ]) {
   if (![loginHtml, signupHtml, authJs].some((source) => source.includes(expected))) {
