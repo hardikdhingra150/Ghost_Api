@@ -8,16 +8,20 @@ const els = {
   status: document.querySelector("#status"),
   endpointPreview: document.querySelector("#endpointPreview"),
   accountStatus: document.querySelector("#accountStatus"),
+  authModeBadge: document.querySelector("#authModeBadge"),
+  showSignIn: document.querySelector("#showSignIn"),
+  showSignUp: document.querySelector("#showSignUp"),
   authUsername: document.querySelector("#authUsername"),
   authPassword: document.querySelector("#authPassword"),
-  signInAccount: document.querySelector("#signInAccount"),
-  createAccount: document.querySelector("#createAccount"),
+  authSubmitAccount: document.querySelector("#authSubmitAccount"),
+  googleAccount: document.querySelector("#googleAccount"),
   logoutAccount: document.querySelector("#logoutAccount")
 };
 
 const CLOUD_BASE_URL = "https://ghostapi-api.onrender.com";
 const LOCAL_BASE_URL = "http://127.0.0.1:4000";
 const WORKSPACE_STORAGE_KEY = "ghostApiWorkspace";
+let authMode = "signin";
 
 boot();
 
@@ -36,13 +40,16 @@ async function boot() {
   els.checkServer.addEventListener("click", checkServer);
   els.startRecorder.addEventListener("click", startRecorder);
   els.openDashboard.addEventListener("click", openDashboard);
-  els.signInAccount.addEventListener("click", () => authenticate("signin"));
-  els.createAccount.addEventListener("click", () => authenticate("signup"));
+  els.showSignIn.addEventListener("click", () => setAuthMode("signin"));
+  els.showSignUp.addEventListener("click", () => setAuthMode("signup"));
+  els.authSubmitAccount.addEventListener("click", () => authenticate(authMode));
+  els.googleAccount.addEventListener("click", openGoogleAuth);
   els.logoutAccount.addEventListener("click", logoutAccount);
   els.authPassword.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") authenticate("signin");
+    if (event.key === "Enter") authenticate(authMode);
   });
 
+  setAuthMode("signin");
   updateAccountStatus();
 }
 
@@ -116,6 +123,13 @@ async function openDashboard() {
   }
 }
 
+async function openGoogleAuth() {
+  await saveBaseUrl();
+  const baseUrl = normalizeBaseUrl(els.baseUrl.value);
+  await chrome.tabs.create({ url: baseUrl + "/dashboard/login.html" });
+  setStatus("Use Google sign-in on the dashboard, then return here and sign in if needed.");
+}
+
 async function authenticate(mode) {
   await saveBaseUrl();
   const username = els.authUsername.value.trim();
@@ -157,6 +171,18 @@ async function authenticate(mode) {
   } catch (error) {
     setAccountStatus((mode === "signup" ? "Create failed: " : "Sign in failed: ") + error.message);
   }
+}
+
+function setAuthMode(mode) {
+  authMode = mode === "signup" ? "signup" : "signin";
+  els.authModeBadge.textContent = authMode === "signup" ? "Sign up" : "Sign in";
+  els.authSubmitAccount.textContent = authMode === "signup" ? "Create account" : "Sign in";
+  els.authPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
+  els.showSignIn.classList.toggle("active", authMode === "signin");
+  els.showSignUp.classList.toggle("active", authMode === "signup");
+  setAccountStatus(authMode === "signup"
+    ? "Create a workspace from the extension, then every saved API syncs to your dashboard."
+    : "Sign in so saved APIs appear on your dashboard.");
 }
 
 async function ensureWorkspace() {

@@ -79,7 +79,8 @@ for (const expected of [
   "/v1/database/plan",
   "/v1/workflows",
   "Save selected API",
-  "Continue with Google"
+  "/dashboard/login.html",
+  "/dashboard/signup.html"
 ]) {
   if (!html.includes(expected)) {
     throw new Error(`Dashboard HTML did not include production dashboard text: ${expected}`);
@@ -88,10 +89,16 @@ for (const expected of [
 
 const cssResponse = await fetch("http://127.0.0.1:4000/dashboard/styles.css");
 const jsResponse = await fetch("http://127.0.0.1:4000/dashboard/app.js");
+const authJsResponse = await fetch("http://127.0.0.1:4000/dashboard/auth.js");
+const loginResponse = await fetch("http://127.0.0.1:4000/dashboard/login.html");
+const signupResponse = await fetch("http://127.0.0.1:4000/dashboard/signup.html");
 const logoResponse = await fetch("http://127.0.0.1:4000/assets/ghostapi-logo.svg");
 const extensionResponse = await fetch("http://127.0.0.1:4000/extension/ghostapi-capture.zip");
 const css = await cssResponse.text();
 const js = await jsResponse.text();
+const authJs = await authJsResponse.text();
+const loginHtml = await loginResponse.text();
+const signupHtml = await signupResponse.text();
 
 if (!cssResponse.ok) {
   throw new Error(`Dashboard CSS returned HTTP ${cssResponse.status}`);
@@ -105,6 +112,10 @@ for (const expected of ["overflow-x: hidden", "white-space: pre-wrap", "word-bre
 
 if (!jsResponse.ok) {
   throw new Error(`Dashboard JS returned HTTP ${jsResponse.status}`);
+}
+
+if (!authJsResponse.ok || !loginResponse.ok || !signupResponse.ok) {
+  throw new Error("Dashboard auth pages must be served as production pages");
 }
 
 if (css.includes("textarea:focus {\n  background: #fff7cc;")) {
@@ -126,14 +137,24 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
 for (const expected of [
   "ghostapi.dashboard.workspace.v1",
   "x-ghostapi-key",
-  "/v1/auth/signup",
-  "/v1/auth/login",
-  "/v1/auth/google/start",
   "ghostapi_session",
   "ghostapi_key"
 ]) {
   if (!js.includes(expected)) {
     throw new Error(`Dashboard JS must isolate browser workspaces with ${expected}`);
+  }
+}
+
+for (const expected of [
+  "Sign in to your API workspace",
+  "Create your GhostAPI account",
+  "/v1/auth/signup",
+  "/v1/auth/login",
+  "/v1/auth/google/start",
+  "ghostapi.dashboard.workspace.v1"
+]) {
+  if (![loginHtml, signupHtml, authJs].some((source) => source.includes(expected))) {
+    throw new Error(`Dashboard auth flow missing expected text: ${expected}`);
   }
 }
 
@@ -162,6 +183,9 @@ console.log(
       assets: {
         css: cssResponse.status,
         js: jsResponse.status,
+        authJs: authJsResponse.status,
+        login: loginResponse.status,
+        signup: signupResponse.status,
         logo: logoResponse.status,
         extension: extensionResponse.status
       },
@@ -182,7 +206,8 @@ console.log(
         "Public API URL",
         "/extension/ghostapi-capture.zip",
         "Save selected API",
-        "Continue with Google"
+        "/dashboard/login.html",
+        "/dashboard/signup.html"
       ]
     },
     null,

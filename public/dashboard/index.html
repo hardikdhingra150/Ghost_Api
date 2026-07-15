@@ -18,6 +18,7 @@
         <a href="#workflows">Workflows</a>
         <a href="#runs">Runs</a>
         <a href="#cloud">Cloud</a>
+        <a id="navAuthLink" href="/dashboard/login.html">Sign in</a>
       </div>
     </nav>
 
@@ -117,19 +118,12 @@
         <h2>Your saved APIs</h2>
         <p id="authStatus">Sign in or create an account so the dashboard and extension save APIs to the same workspace.</p>
       </div>
-      <div class="auth-form">
-        <label>
-          Username
-          <input id="authUsername" autocomplete="username" />
-        </label>
-        <label>
-          Password
-          <input id="authPassword" type="password" autocomplete="current-password" />
-        </label>
+      <div class="auth-summary-card">
+        <strong id="authSummaryTitle">Workspace login required</strong>
+        <p id="authSummaryCopy">Use a GhostAPI account to keep saved APIs, run history, and extension captures separated per user.</p>
         <div class="button-row auth-actions">
-          <button class="button primary" id="authSignInButton">Sign in</button>
-          <button class="button secondary" id="authCreateButton">Create account</button>
-          <button class="button secondary" id="authGoogleButton">Continue with Google</button>
+          <a class="button primary" id="authSignInLink" href="/dashboard/login.html">Sign in</a>
+          <a class="button secondary" id="authCreateLink" href="/dashboard/signup.html">Create account</a>
           <button class="button secondary" id="authLogoutButton">Log out</button>
         </div>
       </div>

@@ -87,6 +87,20 @@ button.secondary {
   color: var(--ink);
 }
 
+button.tab {
+  box-shadow: none;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+button.tab.active {
+  background: var(--blue);
+  color: white;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
 .quick-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -110,6 +124,32 @@ button.secondary {
 .account-card {
   display: grid;
   gap: 10px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.section-title span {
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #f6f0ff;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 2px solid var(--line);
+  border-radius: 15px;
+  background: #fff8e6;
+  padding: 5px;
 }
 
 code {

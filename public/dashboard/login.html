@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in - GhostAPI</title>
+  <link rel="stylesheet" href="/dashboard/styles.css" />
+</head>
+<body class="auth-page" data-auth-mode="signin">
+  <main class="auth-shell">
+    <section class="auth-hero-card">
+      <a class="brand" href="/dashboard" aria-label="GhostAPI dashboard">
+        <img class="brand-logo" src="/assets/ghostapi-logo.svg" alt="" />
+        <span>GhostAPI</span>
+      </a>
+      <p class="eyebrow">Welcome back</p>
+      <h1>Sign in to your API workspace.</h1>
+      <p>Use the same account in the dashboard and Chrome extension so every captured website API lands in your own workspace.</p>
+      <div class="auth-proof-grid">
+        <span>Private saved APIs</span>
+        <span>Extension sync</span>
+        <span>Run history</span>
+      </div>
+    </section>
+
+    <section class="auth-card" aria-label="Sign in form">
+      <p class="eyebrow">Sign in</p>
+      <h2>Open your workspace</h2>
+      <p id="authStatus">Enter your GhostAPI username and password.</p>
+      <label>
+        Username
+        <input id="authUsername" autocomplete="username" autofocus />
+      </label>
+      <label>
+        Password
+        <input id="authPassword" type="password" autocomplete="current-password" />
+      </label>
+      <button class="button primary" id="authSubmitButton">Sign in</button>
+      <button class="button secondary" id="authGoogleButton">Continue with Google</button>
+      <p class="auth-switch">New to GhostAPI? <a href="/dashboard/signup.html">Create an account</a></p>
+    </section>
+  </main>
+  <script src="/dashboard/auth.js" defer></script>
+</body>
+</html>

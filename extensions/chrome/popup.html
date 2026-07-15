@@ -29,8 +29,15 @@
     <button id="checkServer" class="secondary">Check server connection</button>
 
     <section class="account-card">
-      <strong>Account workspace</strong>
+      <div class="section-title">
+        <strong>Account workspace</strong>
+        <span id="authModeBadge">Sign in</span>
+      </div>
       <p id="accountStatus">Sign in so saved APIs appear on your dashboard.</p>
+      <div class="auth-tabs" role="tablist" aria-label="Account mode">
+        <button id="showSignIn" class="tab active" type="button">Sign in</button>
+        <button id="showSignUp" class="tab" type="button">Sign up</button>
+      </div>
       <label>
         Username
         <input id="authUsername" autocomplete="username" />
@@ -39,10 +46,8 @@
         Password
         <input id="authPassword" type="password" autocomplete="current-password" />
       </label>
-      <div class="quick-switch">
-        <button id="signInAccount">Sign in</button>
-        <button id="createAccount" class="secondary">Create</button>
-      </div>
+      <button id="authSubmitAccount">Sign in</button>
+      <button id="googleAccount" class="secondary">Use Google on dashboard</button>
       <button id="logoutAccount" class="secondary">Log out</button>
     </section>
 

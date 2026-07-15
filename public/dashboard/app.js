@@ -93,14 +93,13 @@ const els = {
   databasePlanSummary: document.querySelector("#databasePlanSummary"),
   workflowCards: document.querySelector("#workflowCards"),
   deploymentCards: document.querySelector("#deploymentCards"),
-  downloadExtensionButton: document.querySelector("#downloadExtensionButton")
-  ,
+  downloadExtensionButton: document.querySelector("#downloadExtensionButton"),
+  navAuthLink: document.querySelector("#navAuthLink"),
+  authSummaryTitle: document.querySelector("#authSummaryTitle"),
+  authSummaryCopy: document.querySelector("#authSummaryCopy"),
+  authSignInLink: document.querySelector("#authSignInLink"),
+  authCreateLink: document.querySelector("#authCreateLink"),
   authStatus: document.querySelector("#authStatus"),
-  authUsername: document.querySelector("#authUsername"),
-  authPassword: document.querySelector("#authPassword"),
-  authSignInButton: document.querySelector("#authSignInButton"),
-  authCreateButton: document.querySelector("#authCreateButton"),
-  authGoogleButton: document.querySelector("#authGoogleButton"),
   authLogoutButton: document.querySelector("#authLogoutButton")
 };
 
@@ -122,15 +121,7 @@ function wireEvents() {
   els.downloadExtensionButton?.addEventListener("click", () => {
     setStatus("Extension download started.");
   });
-  els.authSignInButton.addEventListener("click", () => authenticate("signin"));
-  els.authCreateButton.addEventListener("click", () => authenticate("signup"));
-  els.authGoogleButton.addEventListener("click", () => {
-    window.location.href = "/v1/auth/google/start";
-  });
   els.authLogoutButton.addEventListener("click", logout);
-  els.authPassword.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") authenticate("signin");
-  });
   document.querySelectorAll(".copy-command").forEach((button) => {
     button.addEventListener("click", () => copyCommand(button.dataset.command, button));
   });
@@ -179,31 +170,6 @@ async function restoreDashboardWorkspace() {
   return false;
 }
 
-async function authenticate(mode) {
-  const username = els.authUsername.value.trim();
-  const password = els.authPassword.value;
-
-  if (!username || !password) {
-    els.authStatus.textContent = "Enter a username and password.";
-    return;
-  }
-
-  els.authStatus.textContent = mode === "signup" ? "Creating account..." : "Signing in...";
-
-  try {
-    const payload = mode === "signup"
-      ? await api.signUp(username, password)
-      : await api.signIn(username, password);
-
-    saveAuthenticatedWorkspace(payload);
-    els.authPassword.value = "";
-    setAuthUi();
-    await Promise.allSettled([refreshOverview(), loadRuns(), loadWorkflows()]);
-  } catch (error) {
-    els.authStatus.textContent = (mode === "signup" ? "Create account failed: " : "Sign in failed: ") + error.message;
-  }
-}
-
 function saveAuthenticatedWorkspace(payload) {
   state.apiKey = payload.apiKey.key;
   state.account = payload.account;
@@ -233,7 +199,16 @@ function setAuthUi() {
   els.authStatus.textContent = signedIn
     ? `Signed in as ${username}. Dashboard and extension saves now use this workspace.`
     : "Sign in or create an account so saved APIs appear everywhere you use GhostAPI.";
+  els.authSummaryTitle.textContent = signedIn ? "Workspace connected" : "Workspace login required";
+  els.authSummaryCopy.textContent = signedIn
+    ? "Your dashboard is using a private workspace. Extension captures saved with this account will appear here."
+    : "Use a GhostAPI account to keep saved APIs, run history, and extension captures separated per user.";
+  els.navAuthLink.textContent = signedIn ? "Workspace" : "Sign in";
+  els.navAuthLink.href = signedIn ? "#workflows" : "/dashboard/login.html";
+  els.authSignInLink.hidden = signedIn;
+  els.authCreateLink.hidden = signedIn;
   els.authLogoutButton.disabled = !signedIn;
+  els.authLogoutButton.hidden = !signedIn;
   els.runButton.disabled = !signedIn;
   els.heroRunButton.disabled = !signedIn;
   els.refreshButton.disabled = !signedIn;
