@@ -106,7 +106,9 @@ export function createGhostApi(): FastifyInstance {
   app.addHook("preHandler", async (request, reply) => {
     const routePath = request.url.split("?")[0] ?? request.url;
     const providedKey = request.headers["x-ghostapi-key"];
-    const key = Array.isArray(providedKey) ? providedKey[0] : providedKey;
+    const query = request.query as { ghostapi_key?: string } | undefined;
+    const queryKey = request.method === "GET" ? query?.ghostapi_key : undefined;
+    const key = (Array.isArray(providedKey) ? providedKey[0] : providedKey) ?? queryKey;
     const envKeyMatches = Boolean(config.security.apiKey && key === config.security.apiKey);
     const storedTenantContext = key ? await tenantContextForApiKey(key) : null;
 
@@ -854,7 +856,7 @@ export function createGhostApi(): FastifyInstance {
     const params = request.params as { workflowId: string };
     const query = request.query as Record<string, string | undefined>;
     const variables = Object.fromEntries(
-      Object.entries(query).filter((entry): entry is [string, string] => entry[1] !== undefined)
+      Object.entries(query).filter((entry): entry is [string, string] => entry[0] !== "ghostapi_key" && entry[1] !== undefined)
     );
 
     return runWorkflowRequest(params.workflowId, variables, request, reply);

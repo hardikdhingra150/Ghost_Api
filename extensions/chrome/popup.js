@@ -206,7 +206,12 @@ function normalizeBaseUrl(value) {
 }
 
 function updateEndpointPreview() {
-  els.endpointPreview.textContent = normalizeBaseUrl(els.baseUrl.value) + "/v1/workflows/YOUR_API/run";
+  chrome.storage.sync.get([WORKSPACE_STORAGE_KEY], (stored) => {
+    const key = stored[WORKSPACE_STORAGE_KEY]?.apiKey?.key;
+    const url = new URL(normalizeBaseUrl(els.baseUrl.value) + "/v1/workflows/YOUR_API/run");
+    if (key) url.searchParams.set("ghostapi_key", key);
+    els.endpointPreview.textContent = url.toString();
+  });
 }
 
 function setStatus(message) {

@@ -482,6 +482,9 @@ function renderWorkflowCard(workflow) {
   const endpoint = workflow.id === "get-attendance"
     ? "/v1/actions/get-attendance/run"
     : `/v1/workflows/${workflow.id}/run`;
+  const browserTestUrl = state.apiKey && workflow.id !== "get-attendance"
+    ? `${endpoint}?ghostapi_key=${encodeURIComponent(state.apiKey)}`
+    : endpoint;
   const active = workflow.id === state.selectedWorkflowId ? " active" : "";
   return `<button class="mini-card workflow-card${active}" data-workflow-id="${escapeHtml(workflow.id)}" type="button">
     <div class="row space">
@@ -493,6 +496,7 @@ function renderWorkflowCard(workflow) {
     </div>
     <p>${escapeHtml(workflow.description || "Recorded browser workflow ready to run as an API.")}</p>
     <code>${escapeHtml(endpoint)}</code>
+    <span class="muted tiny">Browser test: ${escapeHtml(browserTestUrl)}</span>
   </button>`;
 }
 

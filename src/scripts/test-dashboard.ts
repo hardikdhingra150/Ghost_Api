@@ -140,6 +140,10 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
   throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
+if (!js.includes("Browser test:") || !js.includes("ghostapi_key")) {
+  throw new Error("Dashboard saved API cards must show private browser test URLs");
+}
+
 for (const expected of [
   "ghostapi.dashboard.workspace.v1",
   "x-ghostapi-key",

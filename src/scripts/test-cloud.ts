@@ -185,6 +185,9 @@ const firstWorkflowsResponse = await fetch("http://127.0.0.1:4000/v1/workflows",
     "x-ghostapi-key": accountPayload.apiKey.key
   }
 });
+const firstWorkflowsQueryResponse = await fetch(
+  `http://127.0.0.1:4000/v1/workflows?ghostapi_key=${encodeURIComponent(accountPayload.apiKey.key)}`
+);
 const secondWorkflowsResponse = await fetch("http://127.0.0.1:4000/v1/workflows", {
   headers: {
     "x-ghostapi-key": secondAccountPayload.apiKey.key
@@ -193,10 +196,15 @@ const secondWorkflowsResponse = await fetch("http://127.0.0.1:4000/v1/workflows"
 const firstWorkflowsPayload = (await firstWorkflowsResponse.json()) as {
   workflows?: Array<{ id?: string }>;
 };
+const firstWorkflowsQueryPayload = (await firstWorkflowsQueryResponse.json()) as typeof firstWorkflowsPayload;
 const secondWorkflowsPayload = (await secondWorkflowsResponse.json()) as typeof firstWorkflowsPayload;
 
 if (!firstWorkflowsPayload.workflows?.some((workflow) => workflow.id === privateWorkflowId)) {
   throw new Error("Expected first tenant to see its private workflow");
+}
+
+if (!firstWorkflowsQueryPayload.workflows?.some((workflow) => workflow.id === privateWorkflowId)) {
+  throw new Error("Expected ghostapi_key query to resolve private workflow workspace for browser tests");
 }
 
 if (secondWorkflowsPayload.workflows?.some((workflow) => workflow.id === privateWorkflowId)) {

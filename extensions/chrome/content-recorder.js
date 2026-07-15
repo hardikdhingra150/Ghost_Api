@@ -53,7 +53,7 @@
       #${rootId} .ga-orange { background: #ff4b1f; color: #fff; }
       #${rootId} .ga-mini { padding: 7px 9px; font-size: 12px; box-shadow: none; border-width: 2px; }
       #${rootId} .ga-muted { color: #666; font-size: 12px; line-height: 1.35; }
-      #${rootId} .ga-status { border: 2px solid #111; border-radius: 16px; padding: 9px 10px; background: #f6f0ff; font-size: 12px; font-weight: 750; }
+      #${rootId} .ga-status { border: 2px solid #111; border-radius: 16px; padding: 9px 10px; background: #f6f0ff; font-size: 12px; font-weight: 750; overflow-wrap: anywhere; }
       #${rootId} .ga-steps { max-height: 125px; overflow: auto; display: grid; gap: 6px; }
       #${rootId} .ga-step { border: 2px solid #111; border-radius: 12px; background: #fff; padding: 8px; font-size: 11px; }
       #${rootId} .ga-step strong { display: block; font-size: 12px; }
@@ -235,7 +235,8 @@
       const payload = await response.json();
       if (!response.ok || payload.ok === false) throw new Error(payload.details || payload.error || `Save failed: ${response.status}`);
       ui.json.value = JSON.stringify(payload.workflow, null, 2);
-      setStatus(`Saved. Open ${state.baseUrl}/v1/workflows/${workflow.id}/run or POST the same URL.`);
+      const browserTestUrl = buildBrowserTestUrl(workflow.id);
+      setStatus(`Saved. Test ${browserTestUrl} or open the private dashboard from the extension.`);
     } catch (error) {
       setStatus("Save failed: " + error.message);
     }
@@ -278,6 +279,12 @@
 
   function setStatus(message) {
     ui.status.textContent = message;
+  }
+
+  function buildBrowserTestUrl(workflowId) {
+    const url = new URL(`${state.baseUrl}/v1/workflows/${encodeURIComponent(workflowId)}/run`);
+    if (state.apiKey) url.searchParams.set("ghostapi_key", state.apiKey);
+    return url.toString();
   }
 
   function uniqueStepId(base) {

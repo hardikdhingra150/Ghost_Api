@@ -98,8 +98,8 @@ for (const expected of [
   "ghostApiWorkspace",
   "document.addEventListener(\"input\", captureInput, true)",
   "element.getAttribute(\"name\")",
-  "Saved. Open",
-  "POST the same URL",
+  "Saved. Test",
+  "ghostapi_key",
   "shouldUseVariable",
   "variableNameForInput"
 ]) {
