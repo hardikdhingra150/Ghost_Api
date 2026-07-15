@@ -199,7 +199,7 @@ function setAuthUi() {
     : "Sign in or create an account so saved APIs appear everywhere you use GhostAPI.";
   els.authSummaryTitle.textContent = signedIn ? "Workspace connected" : "Workspace login required";
   els.authSummaryCopy.textContent = signedIn
-    ? "Your dashboard is using a private workspace. Extension captures saved with this account will appear here."
+    ? "Your dashboard is using your signed-in workspace. Extension captures saved with this account will appear here."
     : "Use a GhostAPI account to keep saved APIs, run history, and extension captures separated per user.";
   els.navAuthLink.textContent = signedIn ? "Workspace" : "Sign in";
   els.navAuthLink.href = signedIn ? "#workflows" : "/dashboard/login.html";
@@ -373,8 +373,8 @@ async function refreshOverview() {
 
 function renderApiKeys(payload) {
   const keys = payload.apiKeys || [];
-  const workspaceName = state.account?.organization?.name || "Private workspace";
-  els.apiKeyBadge.textContent = keys.length === 0 ? "Private workspace" : `${keys.length} key${keys.length === 1 ? "" : "s"}`;
+  const workspaceName = state.account?.organization?.name || "Your workspace";
+  els.apiKeyBadge.textContent = keys.length === 0 ? "Your workspace" : `${keys.length} key${keys.length === 1 ? "" : "s"}`;
   els.apiKeySummary.textContent = keys.length === 0
     ? `${workspaceName} is isolated in this browser. New users get their own workspace instead of shared demo data.`
     : `${workspaceName} is isolated in this browser. GhostAPI only displays key metadata after creation.`;
@@ -496,7 +496,7 @@ function renderWorkflowCard(workflow) {
     </div>
     <p>${escapeHtml(workflow.description || "Recorded browser workflow ready to run as an API.")}</p>
     <code>${escapeHtml(endpoint)}</code>
-    <span class="muted tiny">Browser test: ${escapeHtml(browserTestUrl)}</span>
+    <span class="muted tiny">Signed-in test URL: ${escapeHtml(browserTestUrl)}</span>
   </button>`;
 }
 

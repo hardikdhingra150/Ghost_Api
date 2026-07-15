@@ -140,8 +140,8 @@ if (!js.includes("/v1/workflows/${encodeURIComponent(workflowId)}") || !js.inclu
   throw new Error("Dashboard editor must load and save the selected saved API");
 }
 
-if (!js.includes("Browser test:") || !js.includes("ghostapi_key")) {
-  throw new Error("Dashboard saved API cards must show private browser test URLs");
+if (!js.includes("Signed-in test URL:") || !js.includes("ghostapi_key")) {
+  throw new Error("Dashboard saved API cards must show signed-in browser test URLs");
 }
 
 for (const expected of [

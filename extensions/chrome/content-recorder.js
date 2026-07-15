@@ -24,7 +24,7 @@
     state.apiKey = stored.ghostApiWorkspace?.apiKey?.key || null;
 
     if (state.apiKey) {
-      setStatus("Recorder ready. Private workspace connected.");
+      setStatus("Recorder ready. Account connected.");
     } else {
       setStatus("Sign in from the GhostAPI extension popup before saving APIs.");
     }
@@ -235,8 +235,7 @@
       const payload = await response.json();
       if (!response.ok || payload.ok === false) throw new Error(payload.details || payload.error || `Save failed: ${response.status}`);
       ui.json.value = JSON.stringify(payload.workflow, null, 2);
-      const browserTestUrl = buildBrowserTestUrl(workflow.id);
-      setStatus(`Saved. Test ${browserTestUrl} or open the private dashboard from the extension.`);
+      setStatus(`Saved to your workspace as ${workflow.id}. Open the dashboard from the extension to run it or copy its test URL.`);
     } catch (error) {
       setStatus("Save failed: " + error.message);
     }
@@ -279,12 +278,6 @@
 
   function setStatus(message) {
     ui.status.textContent = message;
-  }
-
-  function buildBrowserTestUrl(workflowId) {
-    const url = new URL(`${state.baseUrl}/v1/workflows/${encodeURIComponent(workflowId)}/run`);
-    if (state.apiKey) url.searchParams.set("ghostapi_key", state.apiKey);
-    return url.toString();
   }
 
   function uniqueStepId(base) {

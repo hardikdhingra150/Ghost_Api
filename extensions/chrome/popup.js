@@ -119,7 +119,7 @@ async function openDashboard() {
       url: normalizeBaseUrl(els.baseUrl.value) + "/dashboard#ghostapi_key=" + encodeURIComponent(workspace.apiKey.key)
     });
   } catch (error) {
-    setStatus("Could not open private dashboard: " + error.message);
+    setStatus("Could not open dashboard: " + error.message);
   }
 }
 

@@ -98,8 +98,8 @@ for (const expected of [
   "ghostApiWorkspace",
   "document.addEventListener(\"input\", captureInput, true)",
   "element.getAttribute(\"name\")",
-  "Saved. Test",
-  "ghostapi_key",
+  "Saved to your workspace",
+  "Open the dashboard from the extension",
   "shouldUseVariable",
   "variableNameForInput"
 ]) {
@@ -126,7 +126,7 @@ if (!popupJs.includes("window.close()")) {
 
 for (const expected of ["ghostApiWorkspace", "ghostapi_key", "/v1/auth/signup", "/v1/auth/login"]) {
   if (!popupJs.includes(expected)) {
-    throw new Error(`Extension popup must pass private workspace context to the dashboard: ${expected}`);
+    throw new Error(`Extension popup must pass signed-in workspace context to the dashboard: ${expected}`);
   }
 }
 
